@@ -24,19 +24,61 @@ export const useStatsStore = create((set, get) => ({
 
       if (error) throw error;
 
-      // Group by date and sum across platforms
-      const groupedByDate = {};
+      console.log('📊 Raw data from Supabase:', data);
+
+      // Since we store cumulative totals, we need to calculate daily changes for streaks
+      const platformData = {};
+      
+      // Group by platform and sort by date
       data.forEach((stat) => {
-        if (!groupedByDate[stat.date]) {
-          groupedByDate[stat.date] = { date: stat.date, solved: 0 };
+        if (!platformData[stat.platform]) {
+          platformData[stat.platform] = [];
         }
-        groupedByDate[stat.date].solved += stat.solved_count;
+        platformData[stat.platform].push(stat);
+      });
+
+      // Sort each platform's data by date ascending
+      Object.keys(platformData).forEach((platform) => {
+        platformData[platform].sort((a, b) => new Date(a.date) - new Date(b.date));
+      });
+
+      console.log('📊 Platform data grouped:', platformData);
+
+      // Calculate daily changes (for streak calculation)
+      const dailyChanges = [];
+      Object.keys(platformData).forEach((platform) => {
+        const stats = platformData[platform];
+        for (let i = 0; i < stats.length; i++) {
+          const current = stats[i];
+          const previous = stats[i - 1];
+          const change = previous ? current.solved_count - previous.solved_count : current.solved_count;
+          
+          if (change > 0) {
+            dailyChanges.push({
+              date: current.date,
+              platform: platform,
+              change: change,
+              total: current.solved_count
+            });
+          }
+        }
+      });
+
+      // Group changes by date for streak calculation
+      const groupedByDate = {};
+      dailyChanges.forEach((change) => {
+        if (!groupedByDate[change.date]) {
+          groupedByDate[change.date] = { date: change.date, solved: 0 };
+        }
+        groupedByDate[change.date].solved += change.change;
       });
 
       const dailyStatsArray = Object.values(groupedByDate);
+      console.log('📊 Daily changes for streak:', dailyStatsArray);
       
       // Calculate streak data
       const streakData = computeStreak(dailyStatsArray);
+      console.log('📊 Streak data:', streakData);
 
       set({ 
         dailyStats: data, 
@@ -46,6 +88,7 @@ export const useStatsStore = create((set, get) => ({
       
       return { dailyStats: data, streakData };
     } catch (error) {
+      console.error('❌ fetchDailyStats error:', error);
       set({ error: error.message, loading: false });
       return null;
     }
@@ -138,16 +181,39 @@ export const useStatsStore = create((set, get) => ({
 
     const recentStats = dailyStats.filter((s) => s.date >= startDateStr);
     
-    // Group by date for chart
-    const groupedByDate = {};
+    // Calculate daily changes (not cumulative sums)
+    const platformData = {};
+    
+    // Group by platform
     recentStats.forEach((stat) => {
-      if (!groupedByDate[stat.date]) {
-        groupedByDate[stat.date] = { date: stat.date, solved: 0 };
+      if (!platformData[stat.platform]) {
+        platformData[stat.platform] = [];
       }
-      groupedByDate[stat.date].solved += stat.solved_count;
+      platformData[stat.platform].push(stat);
     });
 
-    return Object.values(groupedByDate).sort((a, b) => 
+    // Sort each platform's data by date
+    Object.keys(platformData).forEach((platform) => {
+      platformData[platform].sort((a, b) => new Date(a.date) - new Date(b.date));
+    });
+
+    // Calculate daily changes for each platform
+    const dailyChanges = {};
+    Object.keys(platformData).forEach((platform) => {
+      const stats = platformData[platform];
+      for (let i = 0; i < stats.length; i++) {
+        const current = stats[i];
+        const previous = stats[i - 1];
+        const change = previous ? current.solved_count - previous.solved_count : 0;
+        
+        if (!dailyChanges[current.date]) {
+          dailyChanges[current.date] = { date: current.date, solved: 0 };
+        }
+        dailyChanges[current.date].solved += change > 0 ? change : 0;
+      }
+    });
+
+    return Object.values(dailyChanges).sort((a, b) => 
       new Date(a.date) - new Date(b.date)
     );
   },
@@ -221,81 +287,95 @@ export const useStatsStore = create((set, get) => ({
   getPlatformStreak: (platform) => {
     const { dailyStats } = get();
     
-    // Filter and sort stats for this platform by date (newest first)
+    // Filter and sort stats for this platform by date (oldest first)
     const platformStats = dailyStats
       .filter((s) => s.platform === platform)
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
     
     if (platformStats.length === 0) {
       return { current: 0, longest: 0 };
     }
-    
-    // Since solved_count is cumulative, we detect activity by checking if count increased
+
+    console.log(`🔥 Calculating streak for ${platform}:`, platformStats);
+
+    // Calculate daily activity (when count increased from previous day)
     const dailyActivity = [];
     for (let i = 0; i < platformStats.length; i++) {
       const current = platformStats[i];
-      const previous = platformStats[i + 1]; // Older entry
+      const previous = platformStats[i - 1];
       
-      // If no previous or count increased, there was activity
+      // Activity = count increased OR it's the first entry
       const hadActivity = !previous || current.solved_count > previous.solved_count;
+      
       dailyActivity.push({
         date: current.date,
         active: hadActivity,
-        count: current.solved_count
+        count: current.solved_count,
+        change: previous ? current.solved_count - previous.solved_count : current.solved_count
       });
     }
-    
-    // Calculate current streak (from most recent day backwards)
+
+    console.log(`🔥 ${platform} daily activity:`, dailyActivity);
+
+    // Calculate current streak (from most recent backwards)
     let currentStreak = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    // Start from most recent (reverse the array for this calculation)
+    const recentActivity = [...dailyActivity].reverse();
     
-    for (let i = 0; i < dailyActivity.length; i++) {
-      const activityDate = new Date(dailyActivity[i].date);
+    for (let i = 0; i < recentActivity.length; i++) {
+      const activity = recentActivity[i];
+      const activityDate = new Date(activity.date);
       activityDate.setHours(0, 0, 0, 0);
       
-      const expectedDate = new Date(today);
-      expectedDate.setDate(expectedDate.getDate() - i);
+      const daysDiff = Math.floor((today - activityDate) / (1000 * 60 * 60 * 24));
       
-      // Check if this is the expected consecutive day and had activity
-      if (activityDate.getTime() === expectedDate.getTime() && dailyActivity[i].active) {
+      // Must be consecutive days with activity
+      if (daysDiff === i && activity.active) {
         currentStreak++;
       } else if (i > 0) {
-        // Allow 1 day grace period for "today"
+        // Allow grace for today (i=0), but break after that
         break;
       }
     }
-    
-    // Calculate longest streak
+
+    // Calculate longest streak (consecutive days with activity)
     let longestStreak = 0;
     let tempStreak = 0;
-    let prevDate = null;
-    
-    // Go through in chronological order (reverse the array)
-    for (let i = dailyActivity.length - 1; i >= 0; i--) {
-      const current = dailyActivity[i];
-      const currentDate = new Date(current.date);
-      
-      if (current.active) {
-        if (!prevDate) {
+    let lastDate = null;
+
+    for (const activity of dailyActivity) {
+      if (activity.active) {
+        const currentDate = new Date(activity.date);
+        
+        if (!lastDate) {
           tempStreak = 1;
         } else {
-          const dayDiff = Math.floor((currentDate - prevDate) / (1000 * 60 * 60 * 24));
-          if (dayDiff === 1) {
+          const daysDiff = Math.floor((currentDate - lastDate) / (1000 * 60 * 60 * 24));
+          if (daysDiff === 1) {
+            // Consecutive day
             tempStreak++;
           } else {
+            // Streak broken
             tempStreak = 1;
           }
         }
+        
         longestStreak = Math.max(longestStreak, tempStreak);
-        prevDate = currentDate;
+        lastDate = currentDate;
       } else {
+        // No activity = streak broken
         tempStreak = 0;
-        prevDate = null;
+        lastDate = null;
       }
     }
+
+    const result = { current: currentStreak, longest: longestStreak };
+    console.log(`🔥 ${platform} streak result:`, result);
     
-    return { current: currentStreak, longest: longestStreak };
+    return result;
   },
 
   // Clear stats data

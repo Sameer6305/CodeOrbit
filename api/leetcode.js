@@ -31,14 +31,18 @@ export default async function handler(req, res) {
       0
     );
 
-    // Store snapshot
+    // Store snapshot with upsert to avoid duplicates
+    const today = new Date().toISOString().slice(0, 10);
     await supabase.from("daily_stats").upsert({
       user_id,
-      date: new Date().toISOString().slice(0, 10),
+      date: today,
       platform: "leetcode",
       solved_count: solved,
+    }, {
+      onConflict: 'user_id,date,platform'
     });
 
+    console.log(`LeetCode sync: ${username} = ${solved} problems on ${today}`);
     return res.json({ solved });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -11,18 +11,24 @@ export default async function handler(req, res) {
     const page = await axios.get(`https://www.codechef.com/users/${handle}`);
     const $ = cheerio.load(page.data);
 
-    // Scrape solved count
-    const solved = parseInt($(".rating-data-section .problems-solved h5").text());
+    // Scrape solved count from the profile page
+    const solvedText = $(".rating-data-section .problems-solved h5").text().trim();
+    const solved = parseInt(solvedText) || 0;
 
+    const today = new Date().toISOString().slice(0, 10);
     await supabase.from("daily_stats").upsert({
       user_id,
-      date: new Date().toISOString().slice(0, 10),
+      date: today,
       platform: "codechef",
       solved_count: solved,
+    }, {
+      onConflict: 'user_id,date,platform'
     });
 
+    console.log(`CodeChef sync: ${handle} = ${solved} problems on ${today}`);
     return res.json({ solved });
   } catch (e) {
+    console.error('CodeChef API error:', e.message);
     res.status(500).json({ error: e.message });
   }
 }

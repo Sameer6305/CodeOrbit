@@ -58,9 +58,13 @@ export const useStatsStore = create((set, get) => ({
     if (platform) {
       // Single platform stats - get latest count
       const stats = dailyStats.filter((s) => s.platform === platform);
-      const latestStat = stats.reduce((latest, current) => 
-        new Date(current.date) > new Date(latest?.date || '1970-01-01') ? current : latest
-      , null);
+      if (stats.length === 0) {
+        return { stats: [], totalSolved: 0 };
+      }
+      const latestStat = stats.reduce((latest, current) => {
+        if (!latest) return current;
+        return new Date(current.date) > new Date(latest.date) ? current : latest;
+      }, null);
       const totalSolved = latestStat?.solved_count || 0;
       return { stats, totalSolved };
     }
@@ -71,11 +75,18 @@ export const useStatsStore = create((set, get) => ({
     
     platforms.forEach((p) => {
       const platformStats = dailyStats.filter((s) => s.platform === p);
-      const latestStat = platformStats.reduce((latest, current) => 
-        new Date(current.date) > new Date(latest?.date || '1970-01-01') ? current : latest
-      , null);
+      if (platformStats.length === 0) {
+        breakdown[p] = 0;
+        return;
+      }
+      const latestStat = platformStats.reduce((latest, current) => {
+        if (!latest) return current;
+        return new Date(current.date) > new Date(latest.date) ? current : latest;
+      }, null);
       breakdown[p] = latestStat?.solved_count || 0;
     });
+    
+    console.log('getPlatformStats breakdown:', breakdown); // Debug log
     
     return breakdown;
   },
@@ -84,14 +95,27 @@ export const useStatsStore = create((set, get) => ({
   getTotalStats: () => {
     const { dailyStats } = get();
     
+    if (dailyStats.length === 0) {
+      return { totalSolved: 0, activeDays: 0, avgDaily: 0 };
+    }
+    
     // Get the LATEST count for each platform (not sum)
     const latestByPlatform = {};
     dailyStats.forEach((stat) => {
-      if (!latestByPlatform[stat.platform] || 
-          new Date(stat.date) > new Date(latestByPlatform[stat.platform].date)) {
-        latestByPlatform[stat.platform] = stat;
+      const platform = stat.platform;
+      if (!latestByPlatform[platform]) {
+        latestByPlatform[platform] = stat;
+      } else {
+        // Compare dates and keep the most recent
+        const currentDate = new Date(stat.date);
+        const existingDate = new Date(latestByPlatform[platform].date);
+        if (currentDate > existingDate) {
+          latestByPlatform[platform] = stat;
+        }
       }
     });
+    
+    console.log('Latest by platform:', latestByPlatform); // Debug log
     
     const totalSolved = Object.values(latestByPlatform)
       .reduce((sum, stat) => sum + stat.solved_count, 0);
@@ -100,9 +124,6 @@ export const useStatsStore = create((set, get) => ({
     const uniqueDays = new Set(dailyStats.map((s) => s.date));
     const activeDays = uniqueDays.size;
     
-    // Calculate average: This should be total problems / total days
-    // But since solved_count is cumulative, we can't calculate true daily average
-    // Instead, show the current solving rate
     const avgDaily = activeDays > 1 ? (totalSolved / activeDays).toFixed(1) : '0';
 
     return { totalSolved, activeDays, avgDaily: parseFloat(avgDaily) };
@@ -138,10 +159,17 @@ export const useStatsStore = create((set, get) => ({
     
     return platforms.map((platform) => {
       const platformStats = dailyStats.filter((s) => s.platform === platform);
+      if (platformStats.length === 0) {
+        return {
+          platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+          solved: 0,
+        };
+      }
       // Get latest count, not sum
-      const latestStat = platformStats.reduce((latest, current) => 
-        new Date(current.date) > new Date(latest?.date || '1970-01-01') ? current : latest
-      , null);
+      const latestStat = platformStats.reduce((latest, current) => {
+        if (!latest) return current;
+        return new Date(current.date) > new Date(latest.date) ? current : latest;
+      }, null);
       const total = latestStat?.solved_count || 0;
       return {
         platform: platform.charAt(0).toUpperCase() + platform.slice(1),
@@ -159,14 +187,26 @@ export const useStatsStore = create((set, get) => ({
       codechef: 0,
     };
     
+    if (dailyStats.length === 0) {
+      return breakdown;
+    }
+    
     // Get LATEST count for each platform
     const latestByPlatform = {};
     dailyStats.forEach((stat) => {
-      if (!latestByPlatform[stat.platform] || 
-          new Date(stat.date) > new Date(latestByPlatform[stat.platform].date)) {
-        latestByPlatform[stat.platform] = stat;
+      const platform = stat.platform;
+      if (!latestByPlatform[platform]) {
+        latestByPlatform[platform] = stat;
+      } else {
+        const currentDate = new Date(stat.date);
+        const existingDate = new Date(latestByPlatform[platform].date);
+        if (currentDate > existingDate) {
+          latestByPlatform[platform] = stat;
+        }
       }
     });
+    
+    console.log('Platform breakdown - latest:', latestByPlatform); // Debug log
     
     Object.entries(latestByPlatform).forEach(([platform, stat]) => {
       if (breakdown.hasOwnProperty(platform)) {

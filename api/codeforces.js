@@ -17,29 +17,30 @@ export default async function handler(req, res) {
 
     const subs = subRes.data.result;
 
-    // 2. Group solved by date
-    const solvedByDate = {};
-
+    // 2. Count total unique problems solved (cumulative total, not per-day)
+    const uniqueProblems = new Set();
     subs.forEach((s) => {
       if (s.verdict === "OK") {
-        const date = new Date(s.creationTimeSeconds * 1000)
-          .toISOString()
-          .slice(0, 10);
-        solvedByDate[date] = (solvedByDate[date] || 0) + 1;
+        const problemId = `${s.problem.contestId}-${s.problem.index}`;
+        uniqueProblems.add(problemId);
       }
     });
 
-    // 3. Upsert into Supabase
-    for (const date in solvedByDate) {
-      await supabase.from("daily_stats").upsert({
-        user_id,
-        date,
-        platform: "codeforces",
-        solved_count: solvedByDate[date],
-      });
-    }
+    const totalSolved = uniqueProblems.size;
 
-    return res.json({ success: true, solved: solvedByDate });
+    // 3. Store cumulative total for today
+    const today = new Date().toISOString().slice(0, 10);
+    await supabase.from("daily_stats").upsert({
+      user_id,
+      date: today,
+      platform: "codeforces",
+      solved_count: totalSolved,
+    }, {
+      onConflict: 'user_id,date,platform'
+    });
+
+    console.log(`Codeforces sync: ${handle} = ${totalSolved} problems on ${today}`);
+    return res.json({ success: true, solved: totalSolved });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

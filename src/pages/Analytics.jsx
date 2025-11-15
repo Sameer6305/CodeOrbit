@@ -84,13 +84,18 @@ export default function Analytics() {
             <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
               <BarChart3 className="w-8 h-8 text-indigo-600" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Problems Solved
+                Total Problems
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {loading ? "..." : totalSolved}
               </p>
+              <div className="mt-1 space-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                {platformStats.leetcode > 0 && <div>🟡 LeetCode: {platformStats.leetcode}</div>}
+                {platformStats.codeforces > 0 && <div>🔵 Codeforces: {platformStats.codeforces}</div>}
+                {platformStats.codechef > 0 && <div>🟤 CodeChef: {platformStats.codechef}</div>}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -108,13 +113,13 @@ export default function Analytics() {
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Avg. Daily
+                Total Across Platforms
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {loading ? "..." : avgDaily.toFixed(1)}
+                {loading ? "..." : totalSolved}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                Problems per active day
+                Combined from all sources
               </p>
             </div>
           </div>
@@ -214,7 +219,7 @@ export default function Analytics() {
 }
 
 function PlatformBar({ platform, solved, total, color, delay = 0 }) {
-  const percentage = (solved / total) * 100;
+  const percentage = 100; // Always show full bar since we're showing actual count
 
   return (
     <motion.div
@@ -226,17 +231,21 @@ function PlatformBar({ platform, solved, total, color, delay = 0 }) {
         <span className="font-medium text-gray-700 dark:text-gray-300">
           {platform}
         </span>
-        <span className="text-gray-500 dark:text-gray-400">
-          {solved}/{total}
+        <span className="text-lg font-bold text-gray-900 dark:text-white">
+          {solved} problems
         </span>
       </div>
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
         <motion.div
-          className={`${color} h-3 rounded-full`}
+          className={`${color} h-4 rounded-full flex items-center justify-center`}
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
-          transition={{ duration: 1, delay: delay + 0.2, ease: "easeOut" }}
-        ></motion.div>
+          transition={{ duration: 0.8, delay: delay + 0.2, ease: "easeOut" }}
+        >
+          <span className="text-white text-xs font-semibold px-2">
+            {solved}
+          </span>
+        </motion.div>
       </div>
     </motion.div>
   );

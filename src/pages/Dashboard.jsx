@@ -12,7 +12,7 @@ import ContestWidget from "../components/ContestWidget";
 export default function Dashboard() {
   const { user } = useAuthStore();
   const { profile, fetchProfile } = useProfileStore();
-  const { streakData, fetchDailyStats, getTotalStats, loading } = useStatsStore();
+  const { streakData, fetchDailyStats, getTotalStats, getPlatformBreakdown, getPlatformStreak, loading } = useStatsStore();
   
   const [syncing, setSyncing] = useState(false);
   const [syncResults, setSyncResults] = useState([]);
@@ -26,8 +26,22 @@ export default function Dashboard() {
   }, [user]);
 
   const { totalSolved, activeDays } = getTotalStats();
-  const currentStreak = streakData?.currentStreak || 0;
-  const longestStreak = streakData?.longestStreak || 0;
+  const platformBreakdown = getPlatformBreakdown();
+  
+  // Get streak data for each platform
+  const cfStreak = getPlatformStreak('codeforces');
+  const lcStreak = getPlatformStreak('leetcode');
+  const ccStreak = getPlatformStreak('codechef');
+  
+  // Find longest streak across all platforms
+  const allStreaks = [
+    { ...cfStreak, name: 'Codeforces' },
+    { ...lcStreak, name: 'LeetCode' },
+    { ...ccStreak, name: 'CodeChef' }
+  ];
+  const longestStreakData = allStreaks.reduce((max, current) => 
+    current.longest > max.longest ? current : max
+  , { longest: 0, name: 'none' });
 
   const handleRefresh = () => {
     if (user?.id) {
@@ -187,31 +201,45 @@ export default function Dashboard() {
           icon={<Code2 className="w-8 h-8 text-blue-600" />}
           title="Total Solved"
           value={loading ? "..." : totalSolved.toString()}
-          change={`${activeDays} active days`}
+          change={
+            <div className="space-y-0.5 text-xs mt-1">
+              {platformBreakdown.leetcode > 0 && <div>🟡 LC: {platformBreakdown.leetcode}</div>}
+              {platformBreakdown.codeforces > 0 && <div>🔵 CF: {platformBreakdown.codeforces}</div>}
+              {platformBreakdown.codechef > 0 && <div>🟤 CC: {platformBreakdown.codechef}</div>}
+              {!platformBreakdown.leetcode && !platformBreakdown.codeforces && !platformBreakdown.codechef && `${activeDays} active days`}
+            </div>
+          }
           bgColor="bg-blue-50 dark:bg-blue-900/20"
           delay={0}
         />
         <StatCard
           icon={<TrendingUp className="w-8 h-8 text-green-600" />}
-          title="Current Streak"
-          value={loading ? "..." : `${currentStreak} days`}
-          change={currentStreak > 0 ? "Keep it up!" : "Start solving today!"}
+          title="Current Streaks"
+          value={loading ? "..." : `${Math.max(cfStreak.current, lcStreak.current, ccStreak.current)} days`}
+          change={
+            <div className="space-y-0.5 text-xs mt-1">
+              {lcStreak.current > 0 && <div>🟡 LC: {lcStreak.current}d</div>}
+              {cfStreak.current > 0 && <div>🔵 CF: {cfStreak.current}d</div>}
+              {ccStreak.current > 0 && <div>🟤 CC: {ccStreak.current}d</div>}
+              {!lcStreak.current && !cfStreak.current && !ccStreak.current && "Start solving today!"}
+            </div>
+          }
           bgColor="bg-green-50 dark:bg-green-900/20"
           delay={0.1}
         />
         <StatCard
           icon={<Target className="w-8 h-8 text-purple-600" />}
           title="Longest Streak"
-          value={loading ? "..." : `${longestStreak} days`}
-          change="Personal best"
+          value={loading ? "..." : `${longestStreakData.longest} days`}
+          change={longestStreakData.name !== 'none' ? `${longestStreakData.name} 🏆` : 'Start solving!'}
           bgColor="bg-purple-50 dark:bg-purple-900/20"
           delay={0.2}
         />
         <StatCard
           icon={<Award className="w-8 h-8 text-orange-600" />}
-          title="This Week"
-          value={loading ? "..." : "—"}
-          change="Track your progress"
+          title="Active Days"
+          value={loading ? "..." : activeDays.toString()}
+          change="Days with activity"
           bgColor="bg-orange-50 dark:bg-orange-900/20"
           delay={0.3}
         />

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { BarChart3, Activity, Calendar } from "lucide-react";
+import { motion } from "framer-motion";
 import { useAuthStore } from "../store/auth";
 import { useStatsStore } from "../store/stats";
 import { useProfileStore } from "../store/profile";
@@ -55,7 +56,12 @@ export default function Analytics() {
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Analytics
@@ -67,7 +73,13 @@ export default function Analytics() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <motion.div 
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          whileHover={{ scale: 1.02, y: -3 }}
+        >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
               <BarChart3 className="w-8 h-8 text-indigo-600" />
@@ -81,9 +93,15 @@ export default function Analytics() {
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <motion.div 
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          whileHover={{ scale: 1.02, y: -3 }}
+        >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <Activity className="w-8 h-8 text-green-600" />
@@ -95,11 +113,20 @@ export default function Analytics() {
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {loading ? "..." : avgDaily.toFixed(1)}
               </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                Problems per active day
+              </p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <motion.div 
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          whileHover={{ scale: 1.02, y: -3 }}
+        >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Calendar className="w-8 h-8 text-purple-600" />
@@ -113,11 +140,16 @@ export default function Analytics() {
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Platform Breakdown */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+      <motion.div 
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
           Platform Breakdown
         </h2>
@@ -127,7 +159,8 @@ export default function Analytics() {
               platform="LeetCode" 
               solved={platformStats.leetcode} 
               total={platformStats.leetcode} 
-              color="bg-yellow-500" 
+              color="bg-yellow-500"
+              delay={0.5}
             />
           )}
           {profile?.codeforces_handle && platformStats.codeforces > 0 && (
@@ -135,7 +168,8 @@ export default function Analytics() {
               platform="Codeforces" 
               solved={platformStats.codeforces} 
               total={platformStats.codeforces} 
-              color="bg-blue-500" 
+              color="bg-blue-500"
+              delay={0.6}
             />
           )}
           {profile?.codechef_handle && platformStats.codechef > 0 && (
@@ -143,7 +177,8 @@ export default function Analytics() {
               platform="CodeChef" 
               solved={platformStats.codechef} 
               total={platformStats.codechef} 
-              color="bg-orange-500" 
+              color="bg-orange-500"
+              delay={0.7}
             />
           )}
           {(!profile?.leetcode_username && !profile?.codeforces_handle && !profile?.codechef_handle) && (
@@ -152,7 +187,7 @@ export default function Analytics() {
             </p>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Charts Placeholder */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -174,15 +209,19 @@ export default function Analytics() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-function PlatformBar({ platform, solved, total, color }) {
+function PlatformBar({ platform, solved, total, color, delay = 0 }) {
   const percentage = (solved / total) * 100;
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.5, delay }}
+    >
       <div className="flex justify-between text-sm mb-2">
         <span className="font-medium text-gray-700 dark:text-gray-300">
           {platform}
@@ -191,12 +230,14 @@ function PlatformBar({ platform, solved, total, color }) {
           {solved}/{total}
         </span>
       </div>
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-        <div
-          className={`${color} h-3 rounded-full transition-all duration-500`}
-          style={{ width: `${percentage}%` }}
-        ></div>
+      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+        <motion.div
+          className={`${color} h-3 rounded-full`}
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 1, delay: delay + 0.2, ease: "easeOut" }}
+        ></motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

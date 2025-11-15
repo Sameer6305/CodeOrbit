@@ -127,6 +127,72 @@ export const useStatsStore = create((set, get) => ({
     });
   },
 
+  // Get platform breakdown for display
+  getPlatformBreakdown: () => {
+    const { dailyStats } = get();
+    const breakdown = {
+      leetcode: 0,
+      codeforces: 0,
+      codechef: 0,
+    };
+    
+    dailyStats.forEach((stat) => {
+      if (breakdown.hasOwnProperty(stat.platform)) {
+        breakdown[stat.platform] += stat.solved_count;
+      }
+    });
+    
+    return breakdown;
+  },
+
+  // Get streak data for a specific platform
+  getPlatformStreak: (platform) => {
+    const { dailyStats } = get();
+    
+    // Filter stats for this platform and sort by date
+    const platformStats = dailyStats
+      .filter((s) => s.platform === platform)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    if (platformStats.length === 0) {
+      return { current: 0, longest: 0 };
+    }
+    
+    // Calculate current streak
+    let currentStreak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let i = 0; i < platformStats.length; i++) {
+      const statDate = new Date(platformStats[i].date);
+      statDate.setHours(0, 0, 0, 0);
+      
+      const expectedDate = new Date(today);
+      expectedDate.setDate(expectedDate.getDate() - i);
+      
+      if (statDate.getTime() === expectedDate.getTime() && platformStats[i].solved_count > 0) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+    
+    // Calculate longest streak
+    let longestStreak = 0;
+    let tempStreak = 0;
+    
+    for (let i = platformStats.length - 1; i >= 0; i--) {
+      if (platformStats[i].solved_count > 0) {
+        tempStreak++;
+        longestStreak = Math.max(longestStreak, tempStreak);
+      } else {
+        tempStreak = 0;
+      }
+    }
+    
+    return { current: currentStreak, longest: longestStreak };
+  },
+
   // Clear stats data
   clearStats: () => {
     set({ dailyStats: [], streakData: null, error: null });

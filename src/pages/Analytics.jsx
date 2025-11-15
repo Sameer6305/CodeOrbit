@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BarChart3, Activity, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
 import { useStatsStore } from "../store/stats";
 import { useProfileStore } from "../store/profile";
@@ -44,12 +45,12 @@ export default function Analytics() {
           <p className="text-yellow-700 dark:text-yellow-300 mb-4">
             Add your Codeforces, LeetCode, or CodeChef profile URLs in Settings to see your analytics.
           </p>
-          <a
-            href="/settings"
+          <Link
+            to="/settings"
             className="inline-block px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition"
           >
             Go to Settings
-          </a>
+          </Link>
         </div>
       </div>
     );

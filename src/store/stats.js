@@ -51,11 +51,27 @@ export const useStatsStore = create((set, get) => ({
     }
   },
 
-  // Get stats for a specific platform
+  // Get stats for a specific platform or all platforms
   getPlatformStats: (platform) => {
-    const stats = get().dailyStats.filter((s) => s.platform === platform);
-    const totalSolved = stats.reduce((sum, s) => sum + s.solved_count, 0);
-    return { stats, totalSolved };
+    const { dailyStats } = get();
+    
+    if (platform) {
+      // Single platform stats
+      const stats = dailyStats.filter((s) => s.platform === platform);
+      const totalSolved = stats.reduce((sum, s) => sum + s.solved_count, 0);
+      return { stats, totalSolved };
+    }
+    
+    // All platforms breakdown
+    const platforms = ["codeforces", "leetcode", "codechef"];
+    const breakdown = {};
+    
+    platforms.forEach((p) => {
+      const platformStats = dailyStats.filter((s) => s.platform === p);
+      breakdown[p] = platformStats.reduce((sum, s) => sum + s.solved_count, 0);
+    });
+    
+    return breakdown;
   },
 
   // Get total stats across all platforms
@@ -66,8 +82,11 @@ export const useStatsStore = create((set, get) => ({
     // Count unique active days
     const uniqueDays = new Set(dailyStats.map((s) => s.date));
     const activeDays = uniqueDays.size;
+    
+    // Calculate average daily
+    const avgDaily = activeDays > 0 ? totalSolved / activeDays : 0;
 
-    return { totalSolved, activeDays };
+    return { totalSolved, activeDays, avgDaily };
   },
 
   // Get stats for last N days

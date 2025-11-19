@@ -8,12 +8,27 @@ export default async function handler(req, res) {
   try {
     const { handle, user_id } = req.query;
 
-    const page = await axios.get(`https://www.codechef.com/users/${handle}`);
+    const page = await axios.get(`https://www.codechef.com/users/${handle}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
     const $ = cheerio.load(page.data);
 
-    // Scrape solved count from the profile page
-    const solvedText = $(".rating-data-section .problems-solved h5").text().trim();
-    const solved = parseInt(solvedText) || 0;
+    // Find the h3 that contains "Total Problems Solved:"
+    let solved = 0;
+    $('h3').each((i, el) => {
+      const text = $(el).text().trim();
+      const match = text.match(/Total Problems Solved:\s*(\d+)/i);
+      if (match) {
+        solved = parseInt(match[1]);
+        return false; // Break the loop
+      }
+    });
+
+    if (solved === 0) {
+      throw new Error('Could not find problems solved count on profile');
+    }
 
     const today = new Date().toISOString().slice(0, 10);
     await supabase.from("daily_stats").upsert({

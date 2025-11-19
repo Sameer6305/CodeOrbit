@@ -203,10 +203,10 @@ export default function Dashboard() {
           value={loading ? "..." : totalSolved.toString()}
           change={
             <div className="space-y-0.5 text-xs mt-1">
-              {platformBreakdown.leetcode > 0 && <div>🟡 LC: {platformBreakdown.leetcode}</div>}
-              {platformBreakdown.codeforces > 0 && <div>🔵 CF: {platformBreakdown.codeforces}</div>}
-              {platformBreakdown.codechef > 0 && <div>🟤 CC: {platformBreakdown.codechef}</div>}
-              {!platformBreakdown.leetcode && !platformBreakdown.codeforces && !platformBreakdown.codechef && `${activeDays} active days`}
+              {platformBreakdown.leetcode > 0 && <div>🟡 LeetCode: {platformBreakdown.leetcode}</div>}
+              {platformBreakdown.codeforces > 0 && <div>🔵 Codeforces: {platformBreakdown.codeforces}</div>}
+              {platformBreakdown.codechef > 0 && <div>🟤 CodeChef: {platformBreakdown.codechef}</div>}
+              {!platformBreakdown.leetcode && !platformBreakdown.codeforces && !platformBreakdown.codechef && "No data yet"}
             </div>
           }
           bgColor="bg-blue-50 dark:bg-blue-900/20"
@@ -215,13 +215,13 @@ export default function Dashboard() {
         <StatCard
           icon={<TrendingUp className="w-8 h-8 text-green-600" />}
           title="Current Streaks"
-          value={loading ? "..." : `${Math.max(cfStreak.current, lcStreak.current, ccStreak.current)} days`}
+          value={loading ? "..." : ""}
           change={
             <div className="space-y-0.5 text-xs mt-1">
-              {lcStreak.current > 0 && <div>🟡 LC: {lcStreak.current}d</div>}
-              {cfStreak.current > 0 && <div>🔵 CF: {cfStreak.current}d</div>}
-              {ccStreak.current > 0 && <div>🟤 CC: {ccStreak.current}d</div>}
-              {!lcStreak.current && !cfStreak.current && !ccStreak.current && "Start solving today!"}
+              {profile?.leetcode_username && <div>🟡 LeetCode: {lcStreak.current}d</div>}
+              {profile?.codeforces_handle && <div>🔵 Codeforces: {cfStreak.current}d</div>}
+              {profile?.codechef_handle && <div>🟤 CodeChef: {ccStreak.current}d</div>}
+              {!profile?.leetcode_username && !profile?.codeforces_handle && !profile?.codechef_handle && "Add platforms in Settings"}
             </div>
           }
           bgColor="bg-green-50 dark:bg-green-900/20"
@@ -231,7 +231,7 @@ export default function Dashboard() {
           icon={<Target className="w-8 h-8 text-purple-600" />}
           title="Longest Streak"
           value={loading ? "..." : `${longestStreakData.longest} days`}
-          change={longestStreakData.name !== 'none' ? `${longestStreakData.name} 🏆` : 'Start solving!'}
+          change={longestStreakData.longest > 0 ? `🏆 ${longestStreakData.name}` : 'Start solving!'}
           bgColor="bg-purple-50 dark:bg-purple-900/20"
           delay={0.2}
         />

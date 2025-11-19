@@ -26,10 +26,11 @@ export default async function handler(req, res) {
 
     const stats = response.data.data;
 
-    const solved = stats.matchedUser.submitStats.acSubmissionNum.reduce(
-      (sum, x) => sum + x.count,
-      0
+    // Get only the 'All' difficulty count to avoid double counting
+    const allDifficulty = stats.matchedUser.submitStats.acSubmissionNum.find(
+      x => x.difficulty === 'All'
     );
+    const solved = allDifficulty ? allDifficulty.count : 0;
 
     // Store snapshot with upsert to avoid duplicates
     const today = new Date().toISOString().slice(0, 10);

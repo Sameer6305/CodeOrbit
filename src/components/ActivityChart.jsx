@@ -11,10 +11,33 @@ import {
 import { useStatsStore } from "../store/stats";
 
 export default function ActivityChart({ data }) {
-  const { getRecentStats, loading } = useStatsStore();
+  const { dailyStats, loading } = useStatsStore();
   
-  // Use provided data or fetch from store
-  const statsData = data || getRecentStats(30);
+  // Calculate aggregate stats for all platforms
+  const getAggregateStats = () => {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    const startDateStr = startDate.toISOString().split("T")[0];
+
+    const recentStats = dailyStats.filter((s) => s.date >= startDateStr);
+    
+    // Group by date and sum across all platforms
+    const dateMap = {};
+    recentStats.forEach((stat) => {
+      if (!dateMap[stat.date]) {
+        dateMap[stat.date] = { date: stat.date, total: 0, platforms: {} };
+      }
+      dateMap[stat.date].platforms[stat.platform] = stat.solved_count;
+    });
+
+    // Calculate daily aggregate (sum of latest count from each platform per day)
+    return Object.values(dateMap).map(day => ({
+      date: day.date,
+      solved: Object.values(day.platforms).reduce((sum, count) => sum + count, 0)
+    })).sort((a, b) => new Date(a.date) - new Date(b.date));
+  };
+  
+  const statsData = data || getAggregateStats();
 
   // Generate complete 30-day data with filled gaps
   function generateChartData() {
@@ -39,9 +62,14 @@ export default function ActivityChart({ data }) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-        30-Day Activity
-      </h2>
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          30-Day Activity
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Total problems solved across all platforms (LeetCode + CodeChef + Codeforces)
+        </p>
+      </div>
 
       {loading ? (
         <div className="h-[300px] flex items-center justify-center">

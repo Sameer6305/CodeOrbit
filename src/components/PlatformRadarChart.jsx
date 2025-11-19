@@ -19,9 +19,14 @@ export default function PlatformRadarChart({ data }) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-        Platform Comparison
-      </h2>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          Platform Comparison
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Total problems solved on each platform
+        </p>
+      </div>
 
       {loading ? (
         <div className="h-[350px] flex items-center justify-center">

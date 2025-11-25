@@ -28,7 +28,8 @@ export default function SyncCodeforcesCard({ handle, userId, onSyncComplete }) {
         throw new Error(data.error || "Failed to sync Codeforces data");
       }
 
-      setSolvedData(data.solved);
+      // Store the solved count for display
+      setSolvedData({ [data.date || new Date().toISOString().slice(0, 10)]: data.solved || 0 });
       setSuccess(true);
       setLoading(false);
 

@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     });
 
     console.log(`Codeforces sync: ${handle} = ${totalSolved} problems on ${today}`);
-    return res.json({ success: true, solved: totalSolved });
+    return res.json({ success: true, solved: totalSolved, date: today, platform: 'codeforces' });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

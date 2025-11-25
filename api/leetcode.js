@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     });
 
     console.log(`LeetCode sync: ${username} = ${solved} problems on ${today}`);
-    return res.json({ solved });
+    return res.json({ solved, date: today, platform: 'leetcode' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

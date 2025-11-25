@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     });
 
     console.log(`CodeChef sync: ${handle} = ${solved} problems on ${today}`);
-    return res.json({ solved });
+    return res.json({ solved, date: today, platform: 'codechef' });
   } catch (e) {
     console.error('CodeChef API error:', e.message);
     res.status(500).json({ error: e.message });

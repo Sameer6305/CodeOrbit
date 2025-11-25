@@ -101,7 +101,7 @@ export default function Dashboard() {
           return {
             platform: platform.name,
             success: true,
-            message: `Synced ${Object.keys(data.solved || {}).length || 0} days of data`,
+            message: `Synced successfully - ${data.solved || 0} problems`,
           };
         } catch (error) {
           console.error(`${platform.name} sync error:`, error);

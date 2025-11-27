@@ -307,68 +307,58 @@ export const useStatsStore = create((set, get) => ({
       // Activity = count increased OR it's the first entry
       const hadActivity = !previous || current.solved_count > previous.solved_count;
       
-      dailyActivity.push({
-        date: current.date,
-        active: hadActivity,
-        count: current.solved_count,
-        change: previous ? current.solved_count - previous.solved_count : current.solved_count
-      });
+      if (hadActivity) {
+        dailyActivity.push({
+          date: current.date,
+          count: current.solved_count,
+          change: previous ? current.solved_count - previous.solved_count : current.solved_count
+        });
+      }
     }
 
     console.log(`🔥 ${platform} daily activity:`, dailyActivity);
 
-    // Calculate current streak (from most recent backwards)
-    let currentStreak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Start from most recent (reverse the array for this calculation)
-    const recentActivity = [...dailyActivity].reverse();
-    
-    for (let i = 0; i < recentActivity.length; i++) {
-      const activity = recentActivity[i];
-      const activityDate = new Date(activity.date);
-      activityDate.setHours(0, 0, 0, 0);
-      
-      const daysDiff = Math.floor((today - activityDate) / (1000 * 60 * 60 * 24));
-      
-      // Must be consecutive days with activity
-      if (daysDiff === i && activity.active) {
-        currentStreak++;
-      } else if (i > 0) {
-        // Allow grace for today (i=0), but break after that
-        break;
-      }
+    if (dailyActivity.length === 0) {
+      return { current: 0, longest: 0 };
     }
 
-    // Calculate longest streak (consecutive days with activity)
+    // Calculate streaks
+    let currentStreak = 0;
     let longestStreak = 0;
     let tempStreak = 0;
     let lastDate = null;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    for (const activity of dailyActivity) {
-      if (activity.active) {
-        const currentDate = new Date(activity.date);
-        
-        if (!lastDate) {
-          tempStreak = 1;
-        } else {
-          const daysDiff = Math.floor((currentDate - lastDate) / (1000 * 60 * 60 * 24));
-          if (daysDiff === 1) {
-            // Consecutive day
-            tempStreak++;
-          } else {
-            // Streak broken
-            tempStreak = 1;
-          }
-        }
-        
-        longestStreak = Math.max(longestStreak, tempStreak);
-        lastDate = currentDate;
+    for (let i = 0; i < dailyActivity.length; i++) {
+      const activity = dailyActivity[i];
+      const activityDate = new Date(activity.date);
+      activityDate.setHours(0, 0, 0, 0);
+      
+      if (!lastDate) {
+        tempStreak = 1;
       } else {
-        // No activity = streak broken
-        tempStreak = 0;
-        lastDate = null;
+        const daysDiff = Math.floor((activityDate - lastDate) / (1000 * 60 * 60 * 24));
+        if (daysDiff === 1) {
+          // Consecutive day
+          tempStreak++;
+        } else {
+          // Gap found - reset streak
+          tempStreak = 1;
+        }
+      }
+      
+      longestStreak = Math.max(longestStreak, tempStreak);
+      lastDate = activityDate;
+      
+      // For current streak: check if this is the most recent activity and if it's recent enough
+      if (i === dailyActivity.length - 1) {
+        const daysSinceActivity = Math.floor((today - activityDate) / (1000 * 60 * 60 * 24));
+        // Current streak is valid only if last activity was today or yesterday
+        if (daysSinceActivity <= 1) {
+          currentStreak = tempStreak;
+        }
       }
     }
 

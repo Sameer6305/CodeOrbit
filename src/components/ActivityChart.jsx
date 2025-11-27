@@ -13,48 +13,52 @@ import { useStatsStore } from "../store/stats";
 export default function ActivityChart({ data }) {
   const { dailyStats, loading } = useStatsStore();
   
-  // Calculate aggregate stats for all platforms
-  const getAggregateStats = () => {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
-    const startDateStr = startDate.toISOString().split("T")[0];
-
-    const recentStats = dailyStats.filter((s) => s.date >= startDateStr);
-    
-    // Group by date and sum across all platforms
-    const dateMap = {};
-    recentStats.forEach((stat) => {
-      if (!dateMap[stat.date]) {
-        dateMap[stat.date] = { date: stat.date, total: 0, platforms: {} };
-      }
-      dateMap[stat.date].platforms[stat.platform] = stat.solved_count;
-    });
-
-    // Calculate daily aggregate (sum of latest count from each platform per day)
-    return Object.values(dateMap).map(day => ({
-      date: day.date,
-      solved: Object.values(day.platforms).reduce((sum, count) => sum + count, 0)
-    })).sort((a, b) => new Date(a.date) - new Date(b.date));
-  };
-  
-  const statsData = data || getAggregateStats();
-
-  // Generate complete 30-day data with filled gaps
+  // Generate complete 30-day data with separate lines for each platform
   function generateChartData() {
     const days = [];
     const today = new Date();
     
+    // Get last 30 days
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 30);
+    const startDateStr = startDate.toISOString().split("T")[0];
+    
+    // Filter stats for last 30 days
+    const recentStats = dailyStats.filter((s) => s.date >= startDateStr);
+    
+    // Group by date and platform
+    const dateMap = {};
+    recentStats.forEach((stat) => {
+      if (!dateMap[stat.date]) {
+        dateMap[stat.date] = {
+          leetcode: 0,
+          codeforces: 0,
+          codechef: 0
+        };
+      }
+      dateMap[stat.date][stat.platform] = stat.solved_count;
+    });
+    
+    // Generate data for each day
     for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split("T")[0];
       
-      const existing = statsData.find(d => d.date === dateStr);
+      const platformData = dateMap[dateStr] || {
+        leetcode: 0,
+        codeforces: 0,
+        codechef: 0
+      };
+      
       days.push({
         date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        problems: existing ? existing.solved : 0,
+        LeetCode: platformData.leetcode,
+        Codeforces: platformData.codeforces,
+        CodeChef: platformData.codechef,
       });
     }
+    
     return days;
   }
 
@@ -67,7 +71,7 @@ export default function ActivityChart({ data }) {
           30-Day Activity
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Total problems solved across all platforms (LeetCode + CodeChef + Codeforces)
+          Total problems solved per platform (LeetCode, CodeChef, Codeforces)
         </p>
       </div>
 
@@ -104,12 +108,30 @@ export default function ActivityChart({ data }) {
           <Legend wrapperStyle={{ fontSize: "14px", paddingTop: "20px" }} />
           <Line
             type="monotone"
-            dataKey="problems"
+            dataKey="LeetCode"
+            stroke="#FFA116"
+            strokeWidth={2}
+            dot={{ fill: "#FFA116", r: 3 }}
+            activeDot={{ r: 5 }}
+            name="LeetCode"
+          />
+          <Line
+            type="monotone"
+            dataKey="Codeforces"
             stroke="#3b82f6"
-            strokeWidth={3}
-            dot={{ fill: "#3b82f6", r: 4 }}
-            activeDot={{ r: 6 }}
-            name="Problems Solved"
+            strokeWidth={2}
+            dot={{ fill: "#3b82f6", r: 3 }}
+            activeDot={{ r: 5 }}
+            name="Codeforces"
+          />
+          <Line
+            type="monotone"
+            dataKey="CodeChef"
+            stroke="#8B4513"
+            strokeWidth={2}
+            dot={{ fill: "#8B4513", r: 3 }}
+            activeDot={{ r: 5 }}
+            name="CodeChef"
           />
         </LineChart>
       </ResponsiveContainer>

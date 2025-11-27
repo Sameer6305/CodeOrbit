@@ -33,6 +33,13 @@ export default function Dashboard() {
   const lcStreak = getPlatformStreak('leetcode');
   const ccStreak = getPlatformStreak('codechef');
   
+  // Calculate combined current streak (max of all platforms)
+  const combinedCurrentStreak = Math.max(
+    cfStreak.current,
+    lcStreak.current,
+    ccStreak.current
+  );
+  
   // Find longest streak across all platforms
   const allStreaks = [
     { ...cfStreak, name: 'Codeforces' },
@@ -214,13 +221,14 @@ export default function Dashboard() {
         />
         <StatCard
           icon={<TrendingUp className="w-8 h-8 text-green-600" />}
-          title="Current Streaks"
-          value={loading ? "..." : ""}
+          title="Current Streak"
+          value={loading ? "..." : `${combinedCurrentStreak} days`}
           change={
             <div className="space-y-0.5 text-xs mt-1">
-              {profile?.leetcode_username && <div>🟡 LeetCode: {lcStreak.current}d</div>}
-              {profile?.codeforces_handle && <div>🔵 Codeforces: {cfStreak.current}d</div>}
-              {profile?.codechef_handle && <div>🟤 CodeChef: {ccStreak.current}d</div>}
+              {profile?.leetcode_username && lcStreak.current > 0 && <div>🟡 LeetCode: {lcStreak.current}d</div>}
+              {profile?.codeforces_handle && cfStreak.current > 0 && <div>🔵 Codeforces: {cfStreak.current}d</div>}
+              {profile?.codechef_handle && ccStreak.current > 0 && <div>🟤 CodeChef: {ccStreak.current}d</div>}
+              {combinedCurrentStreak === 0 && (profile?.leetcode_username || profile?.codeforces_handle || profile?.codechef_handle) && "Solve today to start!"}
               {!profile?.leetcode_username && !profile?.codeforces_handle && !profile?.codechef_handle && "Add platforms in Settings"}
             </div>
           }

@@ -13,53 +13,59 @@ import { useStatsStore } from "../store/stats";
 export default function ActivityChart({ data }) {
   const { dailyStats, loading } = useStatsStore();
   
-  // Generate complete 30-day data with separate lines for each platform
+  // Generate monthly data for the whole year with separate lines for each platform
   function generateChartData() {
-    const days = [];
+    const months = [];
     const today = new Date();
+    const currentYear = today.getFullYear();
     
-    // Get last 30 days
-    const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - 30);
+    // Get start date (12 months ago)
+    const startDate = new Date(currentYear, today.getMonth() - 11, 1);
+    
+    // Filter stats for last 12 months
     const startDateStr = startDate.toISOString().split("T")[0];
-    
-    // Filter stats for last 30 days
     const recentStats = dailyStats.filter((s) => s.date >= startDateStr);
     
-    // Group by date and platform
-    const dateMap = {};
+    // Group by month and platform
+    const monthMap = {};
     recentStats.forEach((stat) => {
-      if (!dateMap[stat.date]) {
-        dateMap[stat.date] = {
-          leetcode: 0,
-          codeforces: 0,
-          codechef: 0
+      const date = new Date(stat.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!monthMap[monthKey]) {
+        monthMap[monthKey] = {
+          leetcode: {},
+          codeforces: {},
+          codechef: {}
         };
       }
-      dateMap[stat.date][stat.platform] = stat.solved_count;
+      
+      // Store the latest count for each day in the month
+      const dateKey = stat.date;
+      monthMap[monthKey][stat.platform][dateKey] = stat.solved_count;
     });
     
-    // Generate data for each day
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split("T")[0];
+    // Generate data for each month (last 12 months)
+    for (let i = 11; i >= 0; i--) {
+      const monthDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+      const monthData = monthMap[monthKey];
       
-      const platformData = dateMap[dateStr] || {
-        leetcode: 0,
-        codeforces: 0,
-        codechef: 0
+      // Calculate the max count for each platform in this month
+      const getMonthMax = (platformData) => {
+        const counts = Object.values(platformData);
+        return counts.length > 0 ? Math.max(...counts) : 0;
       };
       
-      days.push({
-        date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        LeetCode: platformData.leetcode,
-        Codeforces: platformData.codeforces,
-        CodeChef: platformData.codechef,
+      months.push({
+        month: monthDate.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+        LeetCode: monthData ? getMonthMax(monthData.leetcode) : 0,
+        Codeforces: monthData ? getMonthMax(monthData.codeforces) : 0,
+        CodeChef: monthData ? getMonthMax(monthData.codechef) : 0,
       });
     }
     
-    return days;
+    return months;
   }
 
   const chartData = generateChartData();
@@ -68,10 +74,10 @@ export default function ActivityChart({ data }) {
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
       <div className="mb-4">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-          30-Day Activity
+          12-Month Activity
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Total problems solved per platform (LeetCode, CodeChef, Codeforces)
+          Total problems solved per platform over the past year (LeetCode, CodeChef, Codeforces)
         </p>
       </div>
 
@@ -88,7 +94,7 @@ export default function ActivityChart({ data }) {
             className="dark:stroke-gray-600"
           />
           <XAxis
-            dataKey="date"
+            dataKey="month"
             stroke="#6b7280"
             style={{ fontSize: "12px" }}
             angle={-45}

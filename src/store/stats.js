@@ -9,17 +9,14 @@ export const useStatsStore = create((set, get) => ({
   error: null,
 
   // Fetch all daily stats for a user
-  fetchDailyStats: async (userId, days = 365) => {
+  fetchDailyStats: async (userId) => {
     set({ loading: true, error: null });
     try {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-
+      // Fetch ALL historical data (no date limit) for accurate longest streak
       const { data, error } = await supabase
         .from("daily_stats")
         .select("*")
         .eq("user_id", userId)
-        .gte("date", startDate.toISOString().split("T")[0])
         .order("date", { ascending: false });
 
       if (error) throw error;
@@ -298,64 +295,62 @@ export const useStatsStore = create((set, get) => ({
 
     console.log(`🔥 Calculating streak for ${platform}:`, platformStats);
 
-    // Calculate daily activity (when count increased from previous day)
-    const dailyActivity = [];
+    // Get unique dates where user had activity (any day with data = activity day)
+    const activityDates = [];
+    const seenDates = new Set();
+    
     for (let i = 0; i < platformStats.length; i++) {
       const current = platformStats[i];
       const previous = platformStats[i - 1];
       
-      // Activity = count increased OR it's the first entry
+      // Count as activity if: first entry OR count increased from previous day
       const hadActivity = !previous || current.solved_count > previous.solved_count;
       
-      if (hadActivity) {
-        dailyActivity.push({
-          date: current.date,
-          count: current.solved_count,
-          change: previous ? current.solved_count - previous.solved_count : current.solved_count
-        });
+      if (hadActivity && !seenDates.has(current.date)) {
+        activityDates.push(current.date);
+        seenDates.add(current.date);
       }
     }
 
-    console.log(`🔥 ${platform} daily activity:`, dailyActivity);
+    console.log(`🔥 ${platform} activity dates:`, activityDates);
 
-    if (dailyActivity.length === 0) {
+    if (activityDates.length === 0) {
       return { current: 0, longest: 0 };
     }
 
-    // Calculate streaks
+    // Calculate streaks from activity dates
     let currentStreak = 0;
     let longestStreak = 0;
-    let tempStreak = 0;
-    let lastDate = null;
+    let tempStreak = 1;
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    for (let i = 0; i < dailyActivity.length; i++) {
-      const activity = dailyActivity[i];
-      const activityDate = new Date(activity.date);
-      activityDate.setHours(0, 0, 0, 0);
+    for (let i = 0; i < activityDates.length; i++) {
+      const currentDate = new Date(activityDates[i]);
+      currentDate.setHours(0, 0, 0, 0);
       
-      if (!lastDate) {
-        tempStreak = 1;
-      } else {
-        const daysDiff = Math.floor((activityDate - lastDate) / (1000 * 60 * 60 * 24));
+      if (i > 0) {
+        const prevDate = new Date(activityDates[i - 1]);
+        prevDate.setHours(0, 0, 0, 0);
+        const daysDiff = Math.floor((currentDate - prevDate) / (1000 * 60 * 60 * 24));
+        
         if (daysDiff === 1) {
-          // Consecutive day
+          // Consecutive day - extend streak
           tempStreak++;
         } else {
-          // Gap found - reset streak
+          // Gap found - save current streak and start new one
+          longestStreak = Math.max(longestStreak, tempStreak);
           tempStreak = 1;
         }
       }
       
-      longestStreak = Math.max(longestStreak, tempStreak);
-      lastDate = activityDate;
-      
-      // For current streak: check if this is the most recent activity and if it's recent enough
-      if (i === dailyActivity.length - 1) {
-        const daysSinceActivity = Math.floor((today - activityDate) / (1000 * 60 * 60 * 24));
-        // Current streak is valid only if last activity was today or yesterday
+      // Check if this is the last date and calculate current streak
+      if (i === activityDates.length - 1) {
+        longestStreak = Math.max(longestStreak, tempStreak);
+        
+        const daysSinceActivity = Math.floor((today - currentDate) / (1000 * 60 * 60 * 24));
+        // Current streak valid if last activity was today or yesterday
         if (daysSinceActivity <= 1) {
           currentStreak = tempStreak;
         }

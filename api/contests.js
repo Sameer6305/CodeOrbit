@@ -21,13 +21,18 @@ export default async function handler(req, res) {
           }
         });
 
-        const contests = response.data.objects.map((c) => ({
-          name: c.event,
-          platform: platform.split('.')[0].charAt(0).toUpperCase() + platform.split('.')[0].slice(1),
-          start_time: c.start,
-          duration: c.duration,
-          url: c.href,
-        }));
+        const contests = response.data.objects.map((c) => {
+          const platformName = platform.split('.')[0];
+          const capitalizedPlatform = platformName.charAt(0).toUpperCase() + platformName.slice(1);
+          
+          return {
+            name: c.event,
+            platform: capitalizedPlatform === 'Codechef' ? 'CodeChef' : capitalizedPlatform,
+            start_time: c.start,
+            duration: c.duration,
+            url: c.href, // This is already the contest-specific URL from clist.by
+          };
+        });
 
         allContests.push(...contests);
       } catch (platformError) {

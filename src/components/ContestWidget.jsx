@@ -64,6 +64,28 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
     return `${hours}h ${minutes}m`;
   }
 
+  function getTimeRemaining(timeString) {
+    const startTime = new Date(timeString);
+    const now = new Date();
+    const diffMs = startTime - now;
+    
+    if (diffMs < 0) {
+      return "Started";
+    }
+    
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) {
+      return `in ${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `in ${hours}h ${minutes}m`;
+    } else {
+      return `in ${minutes}m`;
+    }
+  }
+
   function formatStartTime(timeString) {
     const date = new Date(timeString);
     const now = new Date();
@@ -166,6 +188,7 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
         <div className="space-y-3">
           {contests.map((contest, index) => {
             const timeInfo = formatStartTime(contest.start_time);
+            const timeRemaining = getTimeRemaining(contest.start_time);
             return (
               <motion.div
                 key={index}
@@ -184,11 +207,9 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
                       >
                         {contest.platform}
                       </span>
-                      {timeInfo.relativeTime && (
-                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                          {timeInfo.relativeTime}
-                        </span>
-                      )}
+                      <span className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-full">
+                        ⏰ Starts {timeRemaining}
+                      </span>
                     </div>
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
                       {contest.name}
@@ -200,7 +221,7 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span>{formatDuration(contest.duration)}</span>
+                        <span>Duration: {formatDuration(contest.duration)}</span>
                       </div>
                     </div>
                   </div>
@@ -210,7 +231,7 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg transition flex-shrink-0"
                   >
-                    Register
+                    View
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>

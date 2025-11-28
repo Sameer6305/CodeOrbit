@@ -23,11 +23,6 @@ export default function Sidebar({ isOpen, onClose }) {
       label: "Dashboard",
     },
     {
-      path: "/analytics",
-      icon: <BarChart3 className="w-5 h-5" />,
-      label: "Analytics",
-    },
-    {
       path: "/benchmark",
       icon: <Users className="w-5 h-5" />,
       label: "Benchmark",

@@ -84,15 +84,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // Sort by count and get top types
+    // Sort by count - return ALL types, not just top 10
     const sortedTypes = Object.entries(typeCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
+      .sort((a, b) => b[1] - a[1]);
 
     res.json({
       types: Array.from(problemTypes),
       typeCount: Object.fromEntries(sortedTypes),
-      topTypes: sortedTypes.map(([type]) => type),
+      topTypes: sortedTypes.map(([type, count]) => ({ type, count })),
     });
   } catch (error) {
     console.error('Problem types API error:', error);

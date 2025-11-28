@@ -7,7 +7,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-import Analytics from "./pages/Analytics";
 import Benchmark from "./pages/Benchmark";
 import Contests from "./pages/Contests";
 import Settings from "./pages/Settings";
@@ -39,16 +38,6 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analytics"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Analytics />
               </Layout>
             </ProtectedRoute>
           }

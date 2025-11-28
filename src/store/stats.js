@@ -320,32 +320,41 @@ export const useStatsStore = create((set, get) => ({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Calculate CURRENT streak by counting backwards from today
+    // Calculate CURRENT streak by counting backwards from today/yesterday
     let currentStreak = 0;
     let checkDate = new Date(today);
+    let foundRecent = false;
     
-    // Start from today and go backwards, checking each day
-    while (true) {
+    // Start from today, allow grace period of 1 day (can include yesterday)
+    for (let i = 0; i <= 1; i++) {
       const dateStr = checkDate.toISOString().split('T')[0];
-      
       if (activityDatesSet.has(dateStr)) {
-        // Has activity on this day - increment streak
-        currentStreak++;
-        checkDate.setDate(checkDate.getDate() - 1); // Move to previous day
-      } else if (currentStreak === 0 && checkDate.getTime() === today.getTime()) {
-        // No activity today, check yesterday (grace period)
-        checkDate.setDate(checkDate.getDate() - 1);
-        const yesterdayStr = checkDate.toISOString().split('T')[0];
-        if (activityDatesSet.has(yesterdayStr)) {
-          currentStreak = 1;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          // No activity today or yesterday - streak is 0
+        foundRecent = true;
+        break;
+      }
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+    
+    // If no activity today or yesterday, streak is 0
+    if (!foundRecent) {
+      currentStreak = 0;
+    } else {
+      // Count consecutive days backwards from the most recent activity
+      checkDate = new Date(today);
+      let started = false;
+      
+      while (currentStreak < 365) { // Prevent infinite loop
+        const dateStr = checkDate.toISOString().split('T')[0];
+        
+        if (activityDatesSet.has(dateStr)) {
+          currentStreak++;
+          started = true;
+        } else if (started) {
+          // Found a gap after starting - streak ends
           break;
         }
-      } else {
-        // Gap found - streak breaks
-        break;
+        
+        checkDate.setDate(checkDate.getDate() - 1);
       }
     }
 

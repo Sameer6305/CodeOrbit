@@ -71,6 +71,7 @@ export default function Dashboard() {
       const response = await fetch(`/api/problem-types?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
+        // topTypes now includes objects with { type, count }
         setProblemTypes(data.topTypes || []);
       }
     } catch (error) {
@@ -291,15 +292,18 @@ export default function Dashboard() {
         />
         <StatCard
           icon={<Target className="w-8 h-8 text-purple-600" />}
-          title="Problem Types"
-          value={loadingTypes ? "..." : problemTypes.length > 0 ? `${problemTypes.length}+` : "0"}
+          title="Top Problem Types"
+          value={loadingTypes ? "..." : problemTypes.length > 0 ? `${problemTypes.length} total` : "0"}
           change={
             <div className="space-y-0.5 text-xs mt-1">
-              {problemTypes.slice(0, 3).map((type, idx) => (
-                <div key={idx}>📚 {type}</div>
+              {problemTypes.slice(0, 5).map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center gap-2">
+                  <span className="truncate text-gray-700 dark:text-gray-300">📚 {item.type}</span>
+                  <span className="font-bold text-purple-600 dark:text-purple-400 flex-shrink-0">{item.count}</span>
+                </div>
               ))}
-              {problemTypes.length > 3 && <div className="text-gray-400">+{problemTypes.length - 3} more</div>}
-              {problemTypes.length === 0 && "Solve to discover"}
+              {problemTypes.length > 5 && <div className="text-gray-400 text-center mt-1">+{problemTypes.length - 5} more types</div>}
+              {problemTypes.length === 0 && "Solve problems to discover"}
             </div>
           }
           bgColor="bg-purple-50 dark:bg-purple-900/20"

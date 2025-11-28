@@ -8,10 +8,17 @@ export const useStatsStore = create((set, get) => ({
   loading: false,
   error: null,
 
+  // Clear cache and reset store
+  clearCache: () => {
+    console.log('🗑️ Clearing stats cache...');
+    set({ dailyStats: [], streakData: null, loading: false, error: null });
+  },
+
   // Fetch all daily stats for a user
   fetchDailyStats: async (userId) => {
     set({ loading: true, error: null });
     try {
+      console.log('🔄 Fetching fresh data from Supabase for user:', userId);
       // Fetch ALL historical data (no date limit) for accurate longest streak
       const { data, error } = await supabase
         .from("daily_stats")

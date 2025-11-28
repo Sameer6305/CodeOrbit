@@ -12,7 +12,7 @@ import ContestWidget from "../components/ContestWidget";
 export default function Dashboard() {
   const { user } = useAuthStore();
   const { profile, fetchProfile } = useProfileStore();
-  const { streakData, fetchDailyStats, getTotalStats, getPlatformBreakdown, getPlatformStreak, loading } = useStatsStore();
+  const { streakData, fetchDailyStats, getTotalStats, getPlatformBreakdown, getPlatformStreak, loading, clearCache } = useStatsStore();
   
   const [syncing, setSyncing] = useState(false);
   const [syncResults, setSyncResults] = useState([]);
@@ -42,6 +42,13 @@ export default function Dashboard() {
   const activeDays = totalStats?.activeDays || 0;
   const platformBreakdown = getPlatformBreakdown() || { leetcode: 0, codeforces: 0, codechef: 0 };
   
+  console.log('📊 Dashboard Display Data:', {
+    totalSolved,
+    activeDays,
+    platformBreakdown,
+    rawTotalStats: totalStats
+  });
+  
   // Get streak data for each platform
   const cfStreak = getPlatformStreak('codeforces') || { current: 0, longest: 0 };
   const lcStreak = getPlatformStreak('leetcode') || { current: 0, longest: 0 };
@@ -56,6 +63,7 @@ export default function Dashboard() {
 
   const handleRefresh = () => {
     if (user?.id) {
+      clearCache(); // Clear cache before fetching
       fetchDailyStats(user.id);
     }
   };
@@ -140,7 +148,13 @@ export default function Dashboard() {
       .map(async (platform) => {
         try {
           const response = await fetch(
-            `${platform.endpoint}?${platform.param}=${platform.handle}&user_id=${user.id}`
+            `${platform.endpoint}?${platform.param}=${platform.handle}&user_id=${user.id}&t=${Date.now()}`,
+            {
+              headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
+              }
+            }
           );
           
           if (!response.ok) {
@@ -175,6 +189,7 @@ export default function Dashboard() {
 
     // Refresh all dashboard data after sync (wait longer for database to update)
     setTimeout(() => {
+      clearCache(); // Clear cache before fetching
       fetchDailyStats(user.id);
       fetchProblemTypes();
       fetchBadges();

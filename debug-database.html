@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug CodeOrbit Stats</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        button { 
+            background: #0f0; color: #000; border: none; padding: 10px 20px; 
+            font-size: 16px; cursor: pointer; margin: 10px 5px; font-weight: bold;
+        }
+        button:hover { background: #0a0; }
+        pre { background: #000; padding: 15px; border: 1px solid #0f0; overflow-x: auto; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        input { 
+            background: #000; color: #0f0; border: 1px solid #0f0; 
+            padding: 8px; font-size: 14px; width: 400px; margin: 10px 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 CodeOrbit Database Debug Tool</h1>
+        <p>Check what's actually stored in Supabase for your user</p>
+        
+        <div>
+            <input type="text" id="userId" placeholder="Enter your user_id (UUID from Supabase)" />
+            <button onclick="checkStats()">Check Database</button>
+            <button onclick="testSync()">Test Sync APIs</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://code-orbit-fpgrhyq7j-sameer-s-projects-06e61bca.vercel.app';
+
+        async function checkStats() {
+            const userId = document.getElementById('userId').value.trim();
+            if (!userId) {
+                alert('Please enter your user_id');
+                return;
+            }
+
+            const result = document.getElementById('result');
+            result.innerHTML = '<p class="success">⏳ Fetching data from Supabase...</p>';
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/debug-stats?user_id=${userId}&t=${Date.now()}`);
+                const data = await response.json();
+
+                result.innerHTML = `
+                    <h2 class="success">✅ Database Contents</h2>
+                    <p><strong>Total Records:</strong> ${data.total_records}</p>
+                    
+                    <h3>Latest by Platform:</h3>
+                    <pre>${JSON.stringify(data.latest_by_platform, null, 2)}</pre>
+                    
+                    <h3>All Records Grouped by Platform:</h3>
+                    <pre>${JSON.stringify(data.platforms, null, 2)}</pre>
+                    
+                    <h3>Raw Data:</h3>
+                    <pre>${JSON.stringify(data.all_data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                result.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+            }
+        }
+
+        async function testSync() {
+            const userId = document.getElementById('userId').value.trim();
+            if (!userId) {
+                alert('Please enter your user_id');
+                return;
+            }
+
+            const result = document.getElementById('result');
+            result.innerHTML = '<p class="success">⏳ Testing sync functionality...</p>';
+
+            // Get profile first
+            result.innerHTML += '<p>Note: You need to have platform handles configured in Settings first!</p>';
+        }
+    </script>
+</body>
+</html>

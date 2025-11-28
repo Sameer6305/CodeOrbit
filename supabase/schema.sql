@@ -79,6 +79,7 @@ CREATE TABLE daily_stats (
   date DATE NOT NULL,
   platform TEXT NOT NULL CHECK (platform IN ('codeforces', 'leetcode', 'codechef')),
   solved_count INTEGER DEFAULT 0,
+  streak INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, date, platform)

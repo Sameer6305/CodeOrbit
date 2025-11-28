@@ -144,8 +144,6 @@ export default function HeatmapChart({ data }) {
                 ? `${value.date}: ${value.count} submissions\n${breakdown.join(', ')}`
                 : `${value.date}: No activity`,
             };
-              "data-tooltip-content": `${value.date}: ${value.count || 0} submissions`,
-            };
           }}
           showWeekdayLabels
         />

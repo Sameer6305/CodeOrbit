@@ -360,7 +360,7 @@ export default function Settings() {
                 <Save className="w-5 h-5" />
                 Save Changes
               </>
-            )}>
+            )}
           </button>
       </div>
     </div>

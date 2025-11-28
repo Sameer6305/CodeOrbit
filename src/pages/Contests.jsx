@@ -177,6 +177,4 @@ export default function Contests() {
       )}
     </div>
   );
-    </div>
-  );
 }

@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -56,7 +54,7 @@ export default async function handler(req, res) {
     if (lc_username) {
       try {
         console.log(`🔍 Fetching LeetCode data for: ${lc_username}`);
-        
+
         const query = `
           query getUserProfile($username: String!) {
             allQuestionsCount { difficulty count }
@@ -71,16 +69,14 @@ export default async function handler(req, res) {
           }
         `;
 
-        const response = await axios.post(
-          "https://leetcode.com/graphql",
-          { query, variables: { username: lc_username } },
-          { 
-            headers: { "Content-Type": "application/json" },
-            timeout: 10000
-          }
-        );
+        const lcResponse = await fetch("https://leetcode.com/graphql", {
+          method: 'POST',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, variables: { username: lc_username } })
+        });
 
-        const stats = response.data?.data;
+        const responseData = await lcResponse.json();
+        const stats = responseData?.data;
         
         if (stats?.matchedUser) {
           // Get only the 'All' difficulty count to avoid double counting
@@ -99,20 +95,19 @@ export default async function handler(req, res) {
       } catch (error) {
         console.error('❌ LeetCode fetch error for', lc_username, ':', error.message);
       }
-    }
-
-    // Fetch Codeforces data - SAME METHOD AS /api/codeforces
+    }    // Fetch Codeforces data - SAME METHOD AS /api/codeforces
     if (cf_handle) {
       try {
         console.log(`🔍 Fetching Codeforces data for: ${cf_handle}`);
         
-        const subRes = await axios.get(
-          `https://codeforces.com/api/user.status?handle=${cf_handle}`,
-          { timeout: 10000 }
+        const cfResponse = await fetch(
+          `https://codeforces.com/api/user.status?handle=${cf_handle}`
         );
 
-        if (subRes.data.status === 'OK') {
-          const subs = subRes.data.result;
+        const cfData = await cfResponse.json();
+
+        if (cfData.status === 'OK') {
+          const subs = cfData.result;
 
           // Count total unique problems solved
           const uniqueProblems = new Set();
@@ -136,7 +131,6 @@ export default async function handler(req, res) {
 
           let currentStreak = 0;
           const today = new Date().toISOString().split('T')[0];
-          let checkDate = new Date();
 
           // Allow 1-day grace period
           if (dates[0] === today || dates[0] === new Date(Date.now() - 86400000).toISOString().split('T')[0]) {
@@ -165,14 +159,13 @@ export default async function handler(req, res) {
       try {
         console.log(`🔍 Fetching CodeChef data for: ${cc_handle}`);
         
-        const page = await axios.get(`https://www.codechef.com/users/${cc_handle}`, {
+        const ccResponse = await fetch(`https://www.codechef.com/users/${cc_handle}`, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          },
-          timeout: 10000
+          }
         });
 
-        const html = page.data;
+        const html = await ccResponse.text();
         
         // Extract solved count - multiple patterns to try
         const solvedMatch = 
@@ -188,7 +181,6 @@ export default async function handler(req, res) {
           console.log(`✅ CodeChef data for ${cc_handle}:`, result.codechef, 'solved');
         } else {
           console.log(`⚠️ CodeChef: Could not parse solved count for ${cc_handle}`);
-          console.log('HTML snippet:', html.substring(0, 500));
         }
 
         // Try to extract streak

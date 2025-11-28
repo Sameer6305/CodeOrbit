@@ -89,25 +89,31 @@ export default function Benchmark() {
       console.log('🔍 Fetching comparison with params:', params.toString());
       console.log('🔍 Handles:', compareHandles);
       
-      const response = await fetch(`/api/compare?${params.toString()}`);
+      const apiUrl = `/api/compare?${params.toString()}`;
+      console.log('🔍 API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl);
       
       console.log('📡 Response status:', response.status, response.statusText);
       
       const data = await response.json();
-      console.log('📊 Comparison data received:', data);
+      console.log('📊 Comparison data received:', JSON.stringify(data, null, 2));
       
-      if (!response.ok) {
-        throw new Error(data.error || data.details || 'Failed to fetch comparison data');
+      // Check if there's an error field (even with 200 status)
+      if (data.error) {
+        setError(data.error + (data.details ? ': ' + data.details : ''));
+        setComparisonData(null);
+        return;
       }
       
-      // Check if we have any valid data (at least one platform returned data)
+      // Check if we have any valid numeric data (>= 0)
       const hasValidData = 
-        (compareHandles.leetcode && data.leetcode >= 0) ||
-        (compareHandles.codeforces && data.codeforces >= 0) ||
-        (compareHandles.codechef && data.codechef >= 0);
+        (compareHandles.leetcode && typeof data.leetcode === 'number' && data.leetcode >= 0) ||
+        (compareHandles.codeforces && typeof data.codeforces === 'number' && data.codeforces >= 0) ||
+        (compareHandles.codechef && typeof data.codechef === 'number' && data.codechef >= 0);
       
       if (!hasValidData) {
-        setError("No data found for the provided handles. Please verify the usernames are correct.");
+        setError("No valid data found for the provided handles. Please verify the usernames are correct.");
         setComparisonData(null);
       } else {
         console.log('✅ Valid data found, setting comparison data');

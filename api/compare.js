@@ -1,11 +1,22 @@
 import axios from 'axios';
 
 export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { cf_handle, lc_username, cc_handle } = req.query;
+
+  console.log('🎯 Compare API called with:', { cf_handle, lc_username, cc_handle });
 
   if (!cf_handle && !lc_username && !cc_handle) {
     return res.status(400).json({ error: 'At least one profile handle is required' });
@@ -167,29 +178,35 @@ export default async function handler(req, res) {
 
     console.log('📊 Final comparison result:', result);
     
-    // Check if we got any valid data
-    const hasAnyData = result.leetcode !== null || result.codeforces !== null || result.codechef !== null;
+    // Check if we got any valid data (not null means we at least tried to fetch it)
+    const hasAnyData = 
+      (lc_username && result.leetcode !== null) ||
+      (cf_handle && result.codeforces !== null) ||
+      (cc_handle && result.codechef !== null);
     
     if (!hasAnyData) {
       console.log('⚠️ No data could be fetched for any platform');
-      return res.status(404).json({ 
+      return res.status(200).json({ 
         error: 'No data found for the provided handles',
         details: 'Please verify the usernames are correct and try again',
-        result
+        leetcode: lc_username ? null : 0,
+        codeforces: cf_handle ? null : 0,
+        codechef: cc_handle ? null : 0,
+        streaks: { leetcode: 0, codeforces: 0, codechef: 0 }
       });
     }
     
-    // Convert null values back to 0 for platforms that weren't queried
-    Object.keys(result).forEach(key => {
-      if (key === 'streaks') {
-        Object.keys(result.streaks).forEach(platform => {
-          if (result.streaks[platform] === null) result.streaks[platform] = 0;
-        });
-      } else if (result[key] === null) {
-        result[key] = 0;
-      }
+    // Convert null values back to 0 for display
+    // But keep them as null if the platform wasn't queried at all
+    if (lc_username && result.leetcode === null) result.leetcode = 0;
+    if (cf_handle && result.codeforces === null) result.codeforces = 0;
+    if (cc_handle && result.codechef === null) result.codechef = 0;
+    
+    Object.keys(result.streaks).forEach(platform => {
+      if (result.streaks[platform] === null) result.streaks[platform] = 0;
     });
     
+    console.log('✅ Returning successful result:', result);
     return res.status(200).json(result);
 
   } catch (error) {

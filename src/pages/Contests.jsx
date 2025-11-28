@@ -22,7 +22,26 @@ export default function Contests() {
       }
 
       const data = await response.json();
-      setContests(data.contests || []);
+      
+      // Group contests by platform and show next upcoming for each
+      const contestsByPlatform = {};
+      (data.contests || []).forEach(contest => {
+        if (!contestsByPlatform[contest.platform]) {
+          contestsByPlatform[contest.platform] = [];
+        }
+        contestsByPlatform[contest.platform].push(contest);
+      });
+      
+      // Get the next 3 contests from each platform
+      const selectedContests = [];
+      Object.values(contestsByPlatform).forEach(platformContests => {
+        selectedContests.push(...platformContests.slice(0, 3));
+      });
+      
+      // Sort by start time
+      selectedContests.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+      
+      setContests(selectedContests);
       setLoading(false);
     } catch (err) {
       setError(err.message);
@@ -34,6 +53,28 @@ export default function Contests() {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
+  }
+
+  function getTimeRemaining(timeString) {
+    const startTime = new Date(timeString);
+    const now = new Date();
+    const diffMs = startTime - now;
+    
+    if (diffMs < 0) {
+      return "Started";
+    }
+    
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) {
+      return `Starts in ${days}d ${hours}h`;
+    } else if (hours > 0) {
+      return `Starts in ${hours}h ${minutes}m`;
+    } else {
+      return `Starts in ${minutes}m`;
+    }
   }
 
   function formatStartTime(timeString) {
@@ -122,6 +163,7 @@ export default function Contests() {
         <div className="space-y-4">
           {contests.map((contest, index) => {
             const timeInfo = formatStartTime(contest.start_time);
+            const timeRemaining = getTimeRemaining(contest.start_time);
             return (
               <motion.div
                 key={index}
@@ -137,6 +179,9 @@ export default function Contests() {
                         className={`${getPlatformColor(contest.platform)} text-white text-xs font-semibold px-3 py-1 rounded-full`}
                       >
                         {contest.platform}
+                      </span>
+                      <span className="text-sm font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-3 py-1 rounded-full">
+                        ⏰ {timeRemaining}
                       </span>
                       {timeInfo.relativeTime && (
                         <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-full font-medium">

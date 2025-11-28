@@ -1,16 +1,49 @@
+import { useState, useEffect } from "react";
 import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
 import { Tooltip } from "react-tooltip";
 import { useStatsStore } from "../store/stats";
+import { useProfileStore } from "../store/profile";
 
 export default function HeatmapChart({ data }) {
   const { dailyStats, loading } = useStatsStore();
+  const { profile } = useProfileStore();
+  const [submissionData, setSubmissionData] = useState(null);
+  const [loadingCalendar, setLoadingCalendar] = useState(false);
+  
   const endDate = new Date();
   const startDate = new Date();
   startDate.setMonth(startDate.getMonth() - 12);
 
-  // Transform daily stats to heatmap format
+  // Fetch submission calendar data from all platforms
+  useEffect(() => {
+    async function fetchSubmissionCalendar() {
+      if (!profile) return;
+      
+      setLoadingCalendar(true);
+      try {
+        const params = new URLSearchParams();
+        if (profile.lc_username) params.append('lc_username', profile.lc_username);
+        if (profile.cf_handle) params.append('cf_handle', profile.cf_handle);
+        if (profile.cc_username) params.append('cc_username', profile.cc_username);
+        
+        const response = await fetch(`/api/submission-calendar?${params.toString()}`);
+        const data = await response.json();
+        setSubmissionData(data);
+      } catch (error) {
+        console.error('Error fetching submission calendar:', error);
+      } finally {
+        setLoadingCalendar(false);
+      }
+    }
+    
+    fetchSubmissionCalendar();
+  }, [profile]);
+
+  // Transform submission calendar to heatmap format
   function generateHeatmapData() {
+    if (!submissionData) return [];
+    
     const values = [];
     const today = new Date();
     
@@ -21,8 +54,10 @@ export default function HeatmapChart({ data }) {
       const dateStr = date.toISOString().split("T")[0];
       
       // Sum all platforms for this date
-      const dayStats = dailyStats.filter(s => s.date === dateStr);
-      const count = dayStats.reduce((sum, s) => sum + s.solved_count, 0);
+      const leetcodeCount = submissionData.leetcode?.[dateStr] || 0;
+      const codeforcesCount = submissionData.codeforces?.[dateStr] || 0;
+      const codechefCount = submissionData.codechef?.[dateStr] || 0;
+      const count = leetcodeCount + codeforcesCount + codechefCount;
       
       values.push({
         date: dateStr,
@@ -53,7 +88,7 @@ export default function HeatmapChart({ data }) {
         </p>
       </div>
       
-      {loading ? (
+      {loading || loadingCalendar ? (
         <div className="h-40 flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -71,7 +106,7 @@ export default function HeatmapChart({ data }) {
             if (!value || !value.date) return {};
             return {
               "data-tooltip-id": "heatmap-tooltip",
-              "data-tooltip-content": `${value.date}: ${value.count || 0} problems`,
+              "data-tooltip-content": `${value.date}: ${value.count || 0} submissions`,
             };
           }}
           showWeekdayLabels

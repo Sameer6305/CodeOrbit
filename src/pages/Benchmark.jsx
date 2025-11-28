@@ -98,8 +98,13 @@ export default function Benchmark() {
       const data = await response.json();
       console.log('Comparison data received:', data);
       
-      // Validate that we got some data
-      if (!data || (data.leetcode === 0 && data.codeforces === 0 && data.codechef === 0)) {
+      // Check if we have any data from the handles that were provided
+      const hasValidData = 
+        (compareHandles.leetcode && data.leetcode !== undefined) ||
+        (compareHandles.codeforces && data.codeforces !== undefined) ||
+        (compareHandles.codechef && data.codechef !== undefined);
+      
+      if (!hasValidData) {
         setError("No data found for the provided handles. Please verify the usernames are correct.");
         setComparisonData(null);
       } else {

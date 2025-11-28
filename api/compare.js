@@ -55,9 +55,13 @@ export default async function handler(req, res) {
           const totalSolved = submissions.find(item => item.difficulty === "All")?.count || 0;
           result.leetcode = totalSolved;
           result.streaks.leetcode = lcResponse.data.data.matchedUser.userCalendar?.streak || 0;
+          console.log(`LeetCode data for ${lc_username}:`, totalSolved, 'solved');
+        } else {
+          console.log(`LeetCode: No data found for ${lc_username}`);
         }
       } catch (error) {
-        console.error('LeetCode fetch error:', error.message);
+        console.error('LeetCode fetch error for', lc_username, ':', error.message);
+        // Keep result.leetcode at 0
       }
     }
 
@@ -77,6 +81,7 @@ export default async function handler(req, res) {
           });
 
           result.codeforces = solvedProblems.size;
+          console.log(`Codeforces data for ${cf_handle}:`, solvedProblems.size, 'solved');
 
           // Calculate streak from submission history
           const dates = submissions
@@ -100,9 +105,12 @@ export default async function handler(req, res) {
           }
 
           result.streaks.codeforces = currentStreak;
+        } else {
+          console.log(`Codeforces: Invalid response for ${cf_handle}`);
         }
       } catch (error) {
-        console.error('Codeforces fetch error:', error.message);
+        console.error('Codeforces fetch error for', cf_handle, ':', error.message);
+        // Keep result.codeforces at 0
       }
     }
 
@@ -124,6 +132,9 @@ export default async function handler(req, res) {
         
         if (solvedMatch) {
           result.codechef = parseInt(solvedMatch[1], 10);
+          console.log(`CodeChef data for ${cc_handle}:`, result.codechef, 'solved');
+        } else {
+          console.log(`CodeChef: Could not parse solved count for ${cc_handle}`);
         }
 
         // Try to extract streak (CodeChef shows "Current Streak")
@@ -134,10 +145,12 @@ export default async function handler(req, res) {
           result.streaks.codechef = parseInt(streakMatch[1], 10);
         }
       } catch (error) {
-        console.error('CodeChef fetch error:', error.message);
+        console.error('CodeChef fetch error for', cc_handle, ':', error.message);
+        // Keep result.codechef at 0
       }
     }
 
+    console.log('Final comparison result:', result);
     return res.status(200).json(result);
 
   } catch (error) {

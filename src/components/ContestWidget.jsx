@@ -22,8 +22,17 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
       }
 
       const data = await response.json();
-      // Take only upcoming 5 contests
-      setContests(data.contests?.slice(0, 5) || getSampleContests());
+      // Show one contest per platform (next upcoming for each)
+      const contestsByPlatform = {};
+      
+      (data.contests || []).forEach(contest => {
+        if (!contestsByPlatform[contest.platform]) {
+          contestsByPlatform[contest.platform] = contest;
+        }
+      });
+      
+      const uniqueContests = Object.values(contestsByPlatform);
+      setContests(uniqueContests.length > 0 ? uniqueContests : getSampleContests());
       setLoading(false);
     } catch (err) {
       setError(err.message);
@@ -33,27 +42,39 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
   };
 
   function getSampleContests() {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(20, 0, 0, 0);
+    
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    nextWeek.setHours(8, 0, 0, 0);
+    
+    const nextTwoWeeks = new Date();
+    nextTwoWeeks.setDate(nextTwoWeeks.getDate() + 14);
+    nextTwoWeeks.setHours(20, 0, 0, 0);
+    
     return [
       {
-        name: "Codeforces Round #912",
+        name: "Codeforces Round (Div. 2)",
         platform: "Codeforces",
-        start_time: "2024-01-20T20:00:00",
+        start_time: tomorrow.toISOString(),
         duration: 7200,
-        url: "https://codeforces.com",
+        url: "https://codeforces.com/contests",
       },
       {
-        name: "Weekly Contest 375",
+        name: "Weekly Contest",
         platform: "LeetCode",
-        start_time: "2024-01-21T08:00:00",
+        start_time: nextWeek.toISOString(),
         duration: 5400,
-        url: "https://leetcode.com",
+        url: "https://leetcode.com/contest",
       },
       {
-        name: "Starters 115",
+        name: "Starters",
         platform: "CodeChef",
-        start_time: "2024-01-22T20:00:00",
+        start_time: nextTwoWeeks.toISOString(),
         duration: 10800,
-        url: "https://codechef.com",
+        url: "https://www.codechef.com/contests",
       },
     ];
   }

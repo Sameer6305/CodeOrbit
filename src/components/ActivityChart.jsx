@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart,
@@ -13,16 +13,45 @@ import {
   AreaChart,
 } from "recharts";
 import { useStatsStore } from "../store/stats";
+import { useProfileStore } from "../store/profile";
 import { TrendingUp, Calendar, BarChart3, Activity } from "lucide-react";
 
 export default function ActivityChart({ data }) {
   const { dailyStats, loading } = useStatsStore();
+  const { profile } = useProfileStore();
   const [timeRange, setTimeRange] = useState("12months"); // 12months, 6months, all
   const [chartType, setChartType] = useState("line"); // line, area
+  const [submissionData, setSubmissionData] = useState(null);
+  const [loadingCalendar, setLoadingCalendar] = useState(false);
   
-  // Generate chart data based on selected time range
+  // Fetch submission calendar data from all platforms
+  useEffect(() => {
+    async function fetchSubmissionCalendar() {
+      if (!profile) return;
+      
+      setLoadingCalendar(true);
+      try {
+        const params = new URLSearchParams();
+        if (profile.lc_username) params.append('lc_username', profile.lc_username);
+        if (profile.cf_handle) params.append('cf_handle', profile.cf_handle);
+        if (profile.cc_username) params.append('cc_username', profile.cc_username);
+        
+        const response = await fetch(`/api/submission-calendar?${params.toString()}`);
+        const data = await response.json();
+        setSubmissionData(data);
+      } catch (error) {
+        console.error('Error fetching submission calendar:', error);
+      } finally {
+        setLoadingCalendar(false);
+      }
+    }
+    
+    fetchSubmissionCalendar();
+  }, [profile]);
+  
+  // Generate chart data based on selected time range using submission calendar
   function generateChartData() {
-    if (!dailyStats || dailyStats.length === 0) return [];
+    if (!submissionData) return [];
     
     const today = new Date();
     let startDate;
@@ -36,9 +65,16 @@ export default function ActivityChart({ data }) {
         startDate = new Date(today.getFullYear(), today.getMonth() - 11, 1);
         break;
       case "all":
-        // Find the earliest date in data
-        const dates = dailyStats.map(s => new Date(s.date));
-        startDate = new Date(Math.min(...dates));
+        // Find the earliest date across all platforms
+        const allDates = [
+          ...Object.keys(submissionData.leetcode || {}),
+          ...Object.keys(submissionData.codeforces || {}),
+          ...Object.keys(submissionData.codechef || {})
+        ].map(d => new Date(d));
+        
+        if (allDates.length === 0) return [];
+        
+        startDate = new Date(Math.min(...allDates));
         // Round to start of month
         startDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
         break;
@@ -46,25 +82,43 @@ export default function ActivityChart({ data }) {
         startDate = new Date(today.getFullYear(), today.getMonth() - 11, 1);
     }
     
-    const startDateStr = startDate.toISOString().split("T")[0];
-    const recentStats = dailyStats.filter((s) => s.date >= startDateStr);
-    
-    // Group by month and platform
+    // Group submissions by month
     const monthMap = {};
-    recentStats.forEach((stat) => {
-      const date = new Date(stat.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      
-      if (!monthMap[monthKey]) {
-        monthMap[monthKey] = {
-          leetcode: {},
-          codeforces: {},
-          codechef: {}
-        };
+    
+    // Process LeetCode data
+    Object.entries(submissionData.leetcode || {}).forEach(([date, count]) => {
+      const d = new Date(date);
+      if (d >= startDate) {
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthMap[monthKey]) {
+          monthMap[monthKey] = { leetcode: 0, codeforces: 0, codechef: 0 };
+        }
+        monthMap[monthKey].leetcode += count;
       }
-      
-      const dateKey = stat.date;
-      monthMap[monthKey][stat.platform][dateKey] = stat.solved_count;
+    });
+    
+    // Process Codeforces data
+    Object.entries(submissionData.codeforces || {}).forEach(([date, count]) => {
+      const d = new Date(date);
+      if (d >= startDate) {
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthMap[monthKey]) {
+          monthMap[monthKey] = { leetcode: 0, codeforces: 0, codechef: 0 };
+        }
+        monthMap[monthKey].codeforces += count;
+      }
+    });
+    
+    // Process CodeChef data
+    Object.entries(submissionData.codechef || {}).forEach(([date, count]) => {
+      const d = new Date(date);
+      if (d >= startDate) {
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthMap[monthKey]) {
+          monthMap[monthKey] = { leetcode: 0, codeforces: 0, codechef: 0 };
+        }
+        monthMap[monthKey].codechef += count;
+      }
     });
     
     // Generate data for each month
@@ -74,19 +128,14 @@ export default function ActivityChart({ data }) {
     
     while (iterDate <= currentMonth) {
       const monthKey = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}`;
-      const monthData = monthMap[monthKey];
-      
-      const getMonthMax = (platformData) => {
-        const counts = Object.values(platformData || {});
-        return counts.length > 0 ? Math.max(...counts) : 0;
-      };
+      const monthData = monthMap[monthKey] || { leetcode: 0, codeforces: 0, codechef: 0 };
       
       months.push({
         month: iterDate.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
         fullDate: new Date(iterDate),
-        LeetCode: monthData ? getMonthMax(monthData.leetcode) : 0,
-        Codeforces: monthData ? getMonthMax(monthData.codeforces) : 0,
-        CodeChef: monthData ? getMonthMax(monthData.codechef) : 0,
+        LeetCode: monthData.leetcode,
+        Codeforces: monthData.codeforces,
+        CodeChef: monthData.codechef,
       });
       
       iterDate.setMonth(iterDate.getMonth() + 1);
@@ -98,8 +147,8 @@ export default function ActivityChart({ data }) {
   const chartData = generateChartData();
   
   // Calculate statistics
-  const totalProblems = chartData.length > 0 
-    ? Math.max(...chartData.map(d => d.LeetCode + d.Codeforces + d.CodeChef))
+  const totalSubmissions = chartData.length > 0 
+    ? chartData.reduce((sum, d) => sum + d.LeetCode + d.Codeforces + d.CodeChef, 0)
     : 0;
   
   const avgPerMonth = chartData.length > 0
@@ -126,13 +175,13 @@ export default function ActivityChart({ data }) {
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></span>
                 <span className="text-gray-300 text-sm">{entry.name}:</span>
               </span>
-              <span className="text-white font-bold">{entry.value}</span>
+              <span className="text-white font-bold">{entry.value} submissions</span>
             </div>
           ))}
           <div className="border-t border-gray-700 mt-2 pt-2">
             <div className="flex justify-between">
               <span className="text-gray-400 text-sm">Total:</span>
-              <span className="text-white font-bold">{total}</span>
+              <span className="text-white font-bold">{total} submissions</span>
             </div>
           </div>
         </div>
@@ -156,10 +205,10 @@ export default function ActivityChart({ data }) {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Activity History
+                Submission History
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Problems solved across all platforms over time
+                Total submissions across all platforms over time
               </p>
             </div>
           </div>
@@ -176,7 +225,7 @@ export default function ActivityChart({ data }) {
               {peakMonth ? peakMonth.month : "N/A"}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {peakMonth ? `${peakMonth.LeetCode + peakMonth.Codeforces + peakMonth.CodeChef} problems` : ""}
+              {peakMonth ? `${peakMonth.LeetCode + peakMonth.Codeforces + peakMonth.CodeChef} submissions` : ""}
             </div>
           </div>
 
@@ -189,7 +238,7 @@ export default function ActivityChart({ data }) {
               {avgPerMonth}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              problems solved
+              submissions/month
             </div>
           </div>
 
@@ -268,15 +317,15 @@ export default function ActivityChart({ data }) {
       </div>
 
       {/* Chart */}
-      {loading ? (
+      {loading || loadingCalendar ? (
         <div className="h-[400px] flex flex-col items-center justify-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading activity data...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading submission data...</p>
         </div>
       ) : chartData.length === 0 ? (
         <div className="h-[400px] flex flex-col items-center justify-center">
           <Activity className="w-16 h-16 text-gray-400 mb-4" />
-          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">No activity data yet</p>
+          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">No submission data yet</p>
           <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Start solving problems to see your progress!</p>
         </div>
       ) : (
@@ -321,7 +370,7 @@ export default function ActivityChart({ data }) {
                   <YAxis 
                     stroke="#6b7280" 
                     style={{ fontSize: "12px", fontWeight: 600 }}
-                    label={{ value: 'Problems Solved', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
+                    label={{ value: 'Submissions', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend 
@@ -388,7 +437,7 @@ export default function ActivityChart({ data }) {
                   <YAxis 
                     stroke="#6b7280" 
                     style={{ fontSize: "12px", fontWeight: 600 }}
-                    label={{ value: 'Problems Solved', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
+                    label={{ value: 'Submissions', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend 

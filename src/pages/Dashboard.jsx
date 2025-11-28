@@ -187,63 +187,74 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Welcome back, {user?.email?.split('@')[0] || 'User'}! Here's your coding activity overview.
-          </p>
+      {/* Hero Header with Gradient */}
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl p-8 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-4xl font-black mb-2">
+                🚀 Dashboard
+              </h1>
+              <p className="text-white/90 text-lg">
+                Welcome back, <span className="font-bold">{user?.email?.split('@')[0] || 'User'}</span>! Here's your coding activity overview.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleRefresh}
+                disabled={loading}
+                className="flex items-center gap-2 px-5 py-3 bg-white/20 hover:bg-white/30 disabled:bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg border border-white/30"
+              >
+                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              {profile && (profile.codeforces_handle || profile.leetcode_username || profile.codechef_handle) && (
+                <button
+                  onClick={handleSyncAll}
+                  disabled={syncing}
+                  className="flex items-center gap-2 px-6 py-3 bg-white hover:bg-white/95 disabled:bg-white/50 text-purple-600 font-bold rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-2xl"
+                >
+                  <Zap className={`w-5 h-5 ${syncing ? 'animate-pulse' : ''}`} />
+                  {syncing ? 'Syncing All...' : 'Sync All Platforms'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white rounded-lg transition"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-          {profile && (profile.codeforces_handle || profile.leetcode_username || profile.codechef_handle) && (
-            <button
-              onClick={handleSyncAll}
-              disabled={syncing}
-              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-lg transition shadow-lg"
-            >
-              <Zap className={`w-5 h-5 ${syncing ? 'animate-pulse' : ''}`} />
-              {syncing ? 'Syncing All...' : 'Sync All Platforms'}
-            </button>
-          )}
-        </div>
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute -left-10 -top-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
       </div>
 
       {/* Development Notice */}
       {import.meta.env.DEV && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-4">
-          <p className="text-blue-800 dark:text-blue-200 text-sm">
-            <strong>ℹ️ Development Mode:</strong> The "Sync All Platforms" button requires deployment to Vercel to work. 
-            API routes only function in production. See <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">DEVELOPMENT_NOTES.md</code> for details.
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-2xl p-5 shadow-lg backdrop-blur-sm">
+          <p className="text-blue-800 dark:text-blue-200 text-sm font-medium">
+            <strong className="text-base">ℹ️ Development Mode:</strong> The "Sync All Platforms" button requires deployment to Vercel to work. 
+            API routes only function in production. See <code className="bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded font-mono text-xs">DEVELOPMENT_NOTES.md</code> for details.
           </p>
         </div>
       )}
 
       {/* Sync Results */}
       {showResults && syncResults.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border-l-4 border-blue-500">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Sync Results:</h3>
-          <div className="space-y-2">
+        <div className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-2xl p-6 border-l-4 border-blue-500 backdrop-blur-sm">
+          <h3 className="font-bold text-xl text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <CheckCircle className="w-6 h-6 text-blue-500" />
+            Sync Results:
+          </h3>
+          <div className="space-y-3">
             {syncResults.map((result, index) => (
-              <div key={index} className="flex items-center gap-3">
+              <div key={index} className={`flex items-center gap-3 p-3 rounded-xl ${result.success ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
                 {result.success ? (
-                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
                 ) : (
-                  <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <XCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
                 )}
-                <span className="font-medium text-gray-700 dark:text-gray-300">
+                <span className="font-bold text-gray-900 dark:text-white">
                   {result.platform}:
                 </span>
-                <span className={result.success ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                <span className={`font-medium ${result.success ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                   {result.message}
                 </span>
               </div>
@@ -337,11 +348,15 @@ export default function Dashboard() {
 
       {/* Warning if no profiles configured */}
       {profile && !profile.codeforces_handle && !profile.leetcode_username && !profile.codechef_handle && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-xl p-6 text-center">
+        <div className="bg-gradient-to-r from-yellow-50 via-orange-50 to-yellow-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-2xl p-8 text-center shadow-xl">
+          <div className="text-6xl mb-4">⚠️</div>
+          <p className="text-yellow-900 dark:text-yellow-100 font-bold text-lg mb-2">
+            No Platform Handles Configured
+          </p>
           <p className="text-yellow-800 dark:text-yellow-200 font-medium">
-            No platform handles configured. Go to{" "}
-            <a href="/settings" className="underline hover:text-yellow-900 dark:hover:text-yellow-100">
-              Settings
+            Go to{" "}
+            <a href="/settings" className="underline hover:text-yellow-900 dark:hover:text-yellow-100 font-bold">
+              Settings ⚙️
             </a>{" "}
             to add your Codeforces, LeetCode, or CodeChef usernames.
           </p>

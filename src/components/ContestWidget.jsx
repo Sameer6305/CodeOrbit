@@ -109,6 +109,12 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
 
   function formatStartTime(timeString) {
     const date = new Date(timeString);
+    
+    // Validate the date
+    if (isNaN(date.getTime())) {
+      return { dateStr: 'Invalid Date', timeStr: '', relativeTime: '' };
+    }
+    
     const now = new Date();
     
     // Calculate difference in days

@@ -35,22 +35,27 @@ export default async function handler(req, res) {
           // Get the next upcoming contest for this platform
           const nextContest = response.data.objects[0];
           
-          // Clean up contest name (remove common prefixes for better display)
-          let contestName = nextContest.event;
-          if (platform.name === 'leetcode.com') {
-            // LeetCode contests usually have format like "Weekly Contest 123" or "Biweekly Contest 45"
-            contestName = contestName.replace(/^LeetCode\s+/i, '');
-          } else if (platform.name === 'codechef.com') {
-            // CodeChef contests like "Starters 123" or "Cook-Off 456"
-            contestName = contestName.replace(/^CodeChef\s+/i, '');
+          // Clean up contest name (remove common prefixes and clean formatting)
+          let contestName = nextContest.event || 'Contest';
+          
+          // Remove platform name prefixes
+          contestName = contestName
+            .replace(/^LeetCode\s+/i, '')
+            .replace(/^CodeChef\s+/i, '')
+            .replace(/^Codeforces\s+/i, '')
+            .trim();
+          
+          // If name is still empty after cleaning, use original
+          if (!contestName) {
+            contestName = nextContest.event;
           }
           
           allContests.push({
             name: contestName,
             platform: platform.displayName,
             start_time: nextContest.start,
-            duration: nextContest.duration,
-            url: nextContest.href,
+            duration: nextContest.duration || 7200, // Default 2 hours if not provided
+            url: nextContest.href || `https://${platform.name}/contests`,
           });
           
           console.log(`✓ Found contest for ${platform.displayName}:`, nextContest.event);

@@ -1,3 +1,5 @@
+import { parseLeetCodeCalendar, createCodeforcesCalendar, calculateStreakFromCalendar } from "./utils/streakCalculator.js";
+
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -64,6 +66,7 @@ export default async function handler(req, res) {
               }
               userCalendar {
                 streak
+                submissionCalendar
               }
             }
           }
@@ -85,8 +88,13 @@ export default async function handler(req, res) {
           );
           const solved = allDifficulty ? allDifficulty.count : 0;
           
+          // Calculate streak from submission calendar
+          const submissionCalendarJson = stats.matchedUser.userCalendar?.submissionCalendar;
+          const calendar = parseLeetCodeCalendar(submissionCalendarJson);
+          const streakData = calculateStreakFromCalendar(calendar);
+          
           result.leetcode = solved;
-          result.streaks.leetcode = stats.matchedUser.userCalendar?.streak || 0;
+          result.streaks.leetcode = streakData.current;
           fetchSuccess.leetcode = true;
           console.log(`✅ LeetCode data for ${lc_username}:`, solved, 'solved, streak:', result.streaks.leetcode);
         } else {
@@ -122,30 +130,12 @@ export default async function handler(req, res) {
           fetchSuccess.codeforces = true;
           console.log(`✅ Codeforces data for ${cf_handle}:`, uniqueProblems.size, 'solved');
 
-          // Calculate streak from submission history
-          const dates = subs
-            .filter(s => s.verdict === 'OK')
-            .map(s => new Date(s.creationTimeSeconds * 1000).toISOString().split('T')[0])
-            .filter((date, index, self) => self.indexOf(date) === index)
-            .sort((a, b) => new Date(b) - new Date(a));
-
-          let currentStreak = 0;
-          const today = new Date().toISOString().split('T')[0];
-
-          // Allow 1-day grace period
-          if (dates[0] === today || dates[0] === new Date(Date.now() - 86400000).toISOString().split('T')[0]) {
-            for (let i = 0; i < dates.length; i++) {
-              const expectedDate = new Date(Date.now() - (i * 86400000)).toISOString().split('T')[0];
-              if (dates.includes(expectedDate)) {
-                currentStreak++;
-              } else if (i > 0) { // Allow skipping today if checking from yesterday
-                break;
-              }
-            }
-          }
-
-          result.streaks.codeforces = currentStreak;
-          console.log(`✅ Codeforces streak for ${cf_handle}:`, currentStreak);
+          // Calculate streak using unified streak calculator
+          const calendar = createCodeforcesCalendar(subs);
+          const streakData = calculateStreakFromCalendar(calendar);
+          
+          result.streaks.codeforces = streakData.current;
+          console.log(`✅ Codeforces streak for ${cf_handle}:`, streakData.current);
         } else {
           console.log(`⚠️ Codeforces: Invalid response for ${cf_handle}`);
         }

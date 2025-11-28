@@ -3,10 +3,16 @@ import { supabase } from "../lib/supabase";
 
 export const useAuthStore = create((set) => ({
   user: null,
+  loading: true, // Add loading state
 
   loadUser: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    set({ user });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      set({ user, loading: false });
+    } catch (error) {
+      console.error("Error loading user:", error);
+      set({ user: null, loading: false });
+    }
   },
 
   login: async (email, password) => {

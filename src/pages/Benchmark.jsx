@@ -37,37 +37,22 @@ export default function Benchmark() {
   const { profile, fetchProfile } = useProfileStore();
   const { getPlatformBreakdown, getPlatformStreak, loading } = useStatsStore();
 
-  // Persist state in localStorage
-  const [compareHandles, setCompareHandles] = useState(() => {
-    const saved = localStorage.getItem('benchmark_handles');
-    return saved ? JSON.parse(saved) : { codeforces: "", leetcode: "", codechef: "" };
-  });
-
-  const [comparisonData, setComparisonData] = useState(() => {
-    const saved = localStorage.getItem('benchmark_comparison');
-    return saved ? JSON.parse(saved) : null;
-  });
-
+  // State for comparison handles (no localStorage persistence)
+  const [compareHandles, setCompareHandles] = useState({ codeforces: "", leetcode: "", codechef: "" });
+  const [comparisonData, setComparisonData] = useState(null);
   const [loadingComparison, setLoadingComparison] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (user?.id) {
       fetchProfile(user.id);
+      // Fetch user's stats when component mounts
+      getPlatformBreakdown();
+      getPlatformStreak('leetcode');
+      getPlatformStreak('codeforces');
+      getPlatformStreak('codechef');
     }
   }, [user]);
-
-  // Save handles to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('benchmark_handles', JSON.stringify(compareHandles));
-  }, [compareHandles]);
-
-  // Save comparison data to localStorage whenever it changes
-  useEffect(() => {
-    if (comparisonData) {
-      localStorage.setItem('benchmark_comparison', JSON.stringify(comparisonData));
-    }
-  }, [comparisonData]);
 
   const myStats = getPlatformBreakdown();
   const myStreaks = {
@@ -143,8 +128,6 @@ export default function Benchmark() {
     setCompareHandles({ codeforces: "", leetcode: "", codechef: "" });
     setComparisonData(null);
     setError("");
-    localStorage.removeItem('benchmark_handles');
-    localStorage.removeItem('benchmark_comparison');
   };
 
   const getWinner = (myValue, theirValue) => {
@@ -508,16 +491,22 @@ export default function Benchmark() {
                   <BarChart3 className="w-6 h-6 text-blue-600" />
                   Multi-Platform Radar
                 </h3>
-                <ResponsiveContainer width="100%" height={320}>
-                  <RadarChart data={radarData}>
-                    <PolarGrid stroke="#374151" />
-                    <PolarAngleAxis dataKey="platform" stroke="#6b7280" style={{ fontSize: '13px', fontWeight: 600 }} />
-                    <PolarRadiusAxis stroke="#6b7280" />
-                    <Radar name="You" dataKey="You" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.7} strokeWidth={2} />
-                    <Radar name="Them" dataKey="Them" stroke="#ec4899" fill="#ec4899" fillOpacity={0.7} strokeWidth={2} />
-                    <Legend iconType="circle" />
-                  </RadarChart>
-                </ResponsiveContainer>
+                {radarData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <RadarChart data={radarData}>
+                      <PolarGrid stroke="#374151" />
+                      <PolarAngleAxis dataKey="platform" stroke="#6b7280" style={{ fontSize: '13px', fontWeight: 600 }} />
+                      <PolarRadiusAxis stroke="#6b7280" />
+                      <Radar name="You" dataKey="You" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.7} strokeWidth={2} />
+                      <Radar name="Them" dataKey="Them" stroke="#ec4899" fill="#ec4899" fillOpacity={0.7} strokeWidth={2} />
+                      <Legend iconType="circle" />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[320px] flex items-center justify-center text-gray-400 dark:text-gray-500">
+                    <p>No comparison data yet</p>
+                  </div>
+                )}
               </motion.div>
 
               {/* Streak Comparison Bar Chart */}
@@ -530,25 +519,31 @@ export default function Benchmark() {
                   <Flame className="w-6 h-6 text-orange-600" />
                   Current Streak Battle
                 </h3>
-                <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={streakData} barGap={8}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: '12px', fontWeight: 600 }} />
-                    <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-                    <RechartsTooltip
-                      contentStyle={{
-                        backgroundColor: "#1f2937",
-                        border: "none",
-                        borderRadius: "12px",
-                        color: "#fff",
-                        boxShadow: "0 10px 25px rgba(0,0,0,0.5)"
-                      }}
-                    />
-                    <Legend iconType="circle" />
-                    <Bar dataKey="You" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="Them" fill="#ec4899" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {streakData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <BarChart data={streakData} barGap={8}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: '12px', fontWeight: 600 }} />
+                      <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: "#1f2937",
+                          border: "none",
+                          borderRadius: "12px",
+                          color: "#fff",
+                          boxShadow: "0 10px 25px rgba(0,0,0,0.5)"
+                        }}
+                      />
+                      <Legend iconType="circle" />
+                      <Bar dataKey="You" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="Them" fill="#ec4899" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[320px] flex items-center justify-center text-gray-400 dark:text-gray-500">
+                    <p>No comparison data yet</p>
+                  </div>
+                )}
               </motion.div>
 
               {/* Your Distribution Pie Chart */}

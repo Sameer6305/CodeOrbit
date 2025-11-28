@@ -293,89 +293,24 @@ export const useStatsStore = create((set, get) => ({
       return { current: 0, longest: 0 };
     }
 
-    console.log(`🔥 Calculating streak for ${platform}:`, platformStats.length, 'records');
+    console.log(`🔥 Getting streak for ${platform}:`, platformStats.length, 'records');
 
-    // Build a Set of dates with actual activity (daily changes)
-    const activityDatesSet = new Set();
-    
-    // Method 1: Look for days where count changed (indicating submissions)
-    for (let i = 1; i < platformStats.length; i++) {
-      const prevCount = platformStats[i - 1].solved_count;
-      const currCount = platformStats[i].solved_count;
-      
-      if (currCount > prevCount) {
-        // Activity detected on this day
-        activityDatesSet.add(platformStats[i].date);
-      }
-    }
-    
-    // Add first day if it has problems
-    if (platformStats.length > 0 && platformStats[0].solved_count > 0) {
-      activityDatesSet.add(platformStats[0].date);
-    }
+    // Use the most recent streak value stored in the database
+    const latestStat = platformStats[platformStats.length - 1];
+    const currentStreak = latestStat.streak || 0;
 
-    console.log(`🔥 ${platform} activity dates:`, activityDatesSet.size, 'active days');
-
-    if (activityDatesSet.size === 0) {
-      return { current: 0, longest: 0 };
-    }
-
-    // Convert to sorted array for easier processing
-    const activityDates = Array.from(activityDatesSet).sort();
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    // Calculate CURRENT streak (consecutive days ending at today or yesterday)
-    let currentStreak = 0;
-    const lastActivityDate = new Date(activityDates[activityDates.length - 1]);
-    lastActivityDate.setHours(0, 0, 0, 0);
-    
-    // Check if last activity was within last 2 days (today or yesterday)
-    const daysSinceLastActivity = Math.floor((today - lastActivityDate) / (1000 * 60 * 60 * 24));
-    
-    if (daysSinceLastActivity <= 1) {
-      // Count backwards from the last activity date
-      let checkDate = new Date(lastActivityDate);
-      
-      for (let i = activityDates.length - 1; i >= 0; i--) {
-        const activityDate = new Date(activityDates[i]);
-        activityDate.setHours(0, 0, 0, 0);
-        
-        const expectedDate = checkDate.toISOString().split('T')[0];
-        const actualDate = activityDates[i];
-        
-        if (expectedDate === actualDate) {
-          currentStreak++;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          // Gap found, stop counting
-          break;
-        }
-      }
-    }
-
-    // Calculate LONGEST streak
+    // Calculate longest streak from historical data
     let longestStreak = 0;
-    let tempStreak = 1;
-    
-    for (let i = 1; i < activityDates.length; i++) {
-      const prevDate = new Date(activityDates[i - 1]);
-      const currDate = new Date(activityDates[i]);
-      
-      const dayDiff = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24));
-      
-      if (dayDiff === 1) {
-        tempStreak++;
-      } else {
-        longestStreak = Math.max(longestStreak, tempStreak);
-        tempStreak = 1;
+    for (const stat of platformStats) {
+      if (stat.streak && stat.streak > longestStreak) {
+        longestStreak = stat.streak;
       }
     }
-    longestStreak = Math.max(longestStreak, tempStreak);
+
+    // If no historical max, use current
+    if (longestStreak === 0) {
+      longestStreak = currentStreak;
+    }
 
     console.log(`🔥 ${platform} streaks - Current: ${currentStreak}, Longest: ${longestStreak}`);
 

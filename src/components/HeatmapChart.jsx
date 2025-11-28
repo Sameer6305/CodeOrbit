@@ -4,10 +4,12 @@ import "react-calendar-heatmap/dist/styles.css";
 import { Tooltip } from "react-tooltip";
 import { useStatsStore } from "../store/stats";
 import { useProfileStore } from "../store/profile";
+import { useAuthStore } from "../store/auth";
 
 export default function HeatmapChart({ data }) {
   const { dailyStats, loading } = useStatsStore();
   const { profile } = useProfileStore();
+  const { user } = useAuthStore();
   const [submissionData, setSubmissionData] = useState(null);
   const [loadingCalendar, setLoadingCalendar] = useState(false);
   
@@ -18,11 +20,12 @@ export default function HeatmapChart({ data }) {
   // Fetch submission calendar data from all platforms
   useEffect(() => {
     async function fetchSubmissionCalendar() {
-      if (!profile) return;
+      if (!profile || !user) return;
       
       setLoadingCalendar(true);
       try {
         const params = new URLSearchParams();
+        if (user.id) params.append('user_id', user.id);
         if (profile.leetcode_username) params.append('lc_username', profile.leetcode_username);
         if (profile.codeforces_handle) params.append('cf_handle', profile.codeforces_handle);
         if (profile.codechef_handle) params.append('cc_username', profile.codechef_handle);
@@ -47,7 +50,7 @@ export default function HeatmapChart({ data }) {
     }
     
     fetchSubmissionCalendar();
-  }, [profile]);
+  }, [profile, user]);
 
   // Transform submission calendar to heatmap format
   function generateHeatmapData() {

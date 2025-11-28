@@ -1,5 +1,6 @@
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
+import { createCodeforcesCalendar, calculateStreakFromCalendar } from "./utils/streakCalculator.js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
@@ -28,6 +29,11 @@ export default async function handler(req, res) {
 
     const totalSolved = uniqueProblems.size;
 
+    // Calculate streak from submission calendar
+    const calendar = createCodeforcesCalendar(subs);
+    const streakData = calculateStreakFromCalendar(calendar);
+    const currentStreak = streakData.current;
+
     // 3. Store cumulative total for today
     const today = new Date().toISOString().slice(0, 10);
     await supabase.from("daily_stats").upsert({
@@ -35,12 +41,13 @@ export default async function handler(req, res) {
       date: today,
       platform: "codeforces",
       solved_count: totalSolved,
+      streak: currentStreak
     }, {
       onConflict: 'user_id,date,platform'
     });
 
-    console.log(`Codeforces sync: ${handle} = ${totalSolved} problems on ${today}`);
-    return res.json({ success: true, solved: totalSolved, date: today, platform: 'codeforces' });
+    console.log(`Codeforces sync: ${handle} = ${totalSolved} problems, streak: ${currentStreak} on ${today}`);
+    return res.json({ success: true, solved: totalSolved, streak: currentStreak, date: today, platform: 'codeforces' });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

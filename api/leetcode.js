@@ -1,5 +1,6 @@
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
+import { parseLeetCodeCalendar, calculateStreakFromCalendar } from "./utils/streakCalculator.js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
@@ -13,6 +14,10 @@ export default async function handler(req, res) {
         matchedUser(username: $username) {
           submitStats: submitStatsGlobal {
             acSubmissionNum { difficulty count }
+          }
+          userCalendar {
+            streak
+            submissionCalendar
           }
         }
       }
@@ -31,6 +36,12 @@ export default async function handler(req, res) {
       x => x.difficulty === 'All'
     );
     const solved = allDifficulty ? allDifficulty.count : 0;
+    
+    // Calculate streak from submission calendar
+    const submissionCalendarJson = stats.matchedUser.userCalendar?.submissionCalendar;
+    const calendar = parseLeetCodeCalendar(submissionCalendarJson);
+    const streakData = calculateStreakFromCalendar(calendar);
+    const streak = streakData.current;
 
     // Store snapshot with upsert to avoid duplicates
     const today = new Date().toISOString().slice(0, 10);
@@ -39,12 +50,13 @@ export default async function handler(req, res) {
       date: today,
       platform: "leetcode",
       solved_count: solved,
+      streak: streak
     }, {
       onConflict: 'user_id,date,platform'
     });
 
-    console.log(`LeetCode sync: ${username} = ${solved} problems on ${today}`);
-    return res.json({ solved, date: today, platform: 'leetcode' });
+    console.log(`LeetCode sync: ${username} = ${solved} problems, streak: ${streak} on ${today}`);
+    return res.json({ solved, streak, date: today, platform: 'leetcode' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

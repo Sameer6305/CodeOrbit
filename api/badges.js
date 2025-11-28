@@ -6,7 +6,6 @@ export default async function handler(req, res) {
     
     const badges = {
       leetcode: 0,
-      codeforces: 0,
       codechef: 0,
       total: 0
     };
@@ -39,30 +38,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Fetch Codeforces rating (we'll count rating milestones as "badges")
-    if (codeforces_handle) {
-      try {
-        const response = await axios.get(
-          `https://codeforces.com/api/user.info?handles=${codeforces_handle}`
-        );
-
-        if (response.data.status === 'OK') {
-          const user = response.data.result[0];
-          const rating = user.rating || 0;
-          const maxRating = user.maxRating || 0;
-          
-          // Count rating milestones as badges (every 200 rating = 1 badge)
-          // Also count achievements like contests participated
-          const ratingBadges = Math.floor(maxRating / 200);
-          const contributionBadge = user.contribution > 0 ? 1 : 0;
-          
-          badges.codeforces = ratingBadges + contributionBadge;
-        }
-      } catch (error) {
-        console.error('Codeforces badges error:', error.message);
-      }
-    }
-
     // Fetch CodeChef stars (we'll use stars as badges)
     if (codechef_handle) {
       try {
@@ -87,7 +62,7 @@ export default async function handler(req, res) {
       }
     }
 
-    badges.total = badges.leetcode + badges.codeforces + badges.codechef;
+    badges.total = badges.leetcode + badges.codechef;
 
     res.json({ badges });
   } catch (error) {

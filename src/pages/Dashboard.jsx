@@ -19,7 +19,7 @@ export default function Dashboard() {
   const [showResults, setShowResults] = useState(false);
   const [problemTypes, setProblemTypes] = useState([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
-  const [badges, setBadges] = useState({ leetcode: 0, codeforces: 0, codechef: 0, total: 0 });
+  const [badges, setBadges] = useState({ leetcode: 0, codechef: 0, total: 0 });
   const [loadingBadges, setLoadingBadges] = useState(false);
   const [contestRefreshTrigger, setContestRefreshTrigger] = useState(0);
 
@@ -94,7 +94,7 @@ export default function Dashboard() {
       const response = await fetch(`/api/badges?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        setBadges(data.badges || { leetcode: 0, codeforces: 0, codechef: 0, total: 0 });
+        setBadges(data.badges || { leetcode: 0, codechef: 0, total: 0 });
       }
     } catch (error) {
       console.error('Error fetching badges:', error);
@@ -171,13 +171,13 @@ export default function Dashboard() {
     setSyncResults(syncResults);
     setSyncing(false);
 
-    // Refresh all dashboard data after sync
+    // Refresh all dashboard data after sync (wait longer for database to update)
     setTimeout(() => {
       fetchDailyStats(user.id);
       fetchProblemTypes();
       fetchBadges();
       setContestRefreshTrigger(prev => prev + 1); // Trigger contest refresh
-    }, 1000);
+    }, 2000);
 
     // Hide results after 5 seconds
     setTimeout(() => {
@@ -327,7 +327,6 @@ export default function Dashboard() {
           change={
             <div className="space-y-0.5 text-xs mt-1">
               {profile?.leetcode_username && badges.leetcode > 0 && <div>🟡 LeetCode: {badges.leetcode}</div>}
-              {profile?.codeforces_handle && badges.codeforces > 0 && <div>🔵 Codeforces: {badges.codeforces}</div>}
               {profile?.codechef_handle && badges.codechef > 0 && <div>🟤 CodeChef: {badges.codechef}</div>}
               {badges.total === 0 && "Earn badges by solving!"}
             </div>

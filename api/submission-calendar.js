@@ -1,8 +1,11 @@
 import axios from "axios";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
 export default async function handler(req, res) {
   try {
-    const { lc_username, cf_handle, cc_username } = req.query;
+    const { lc_username, cf_handle, cc_username, user_id } = req.query;
     
     const result = {
       leetcode: {},
@@ -70,12 +73,35 @@ export default async function handler(req, res) {
       }
     }
 
-    // Fetch CodeChef submission history (if available via API)
-    if (cc_username) {
+    // Fetch CodeChef submission history from daily_stats
+    if (cc_username && user_id) {
       try {
         // CodeChef doesn't have a public API for submission calendar
-        // We'll use the stored daily_stats as fallback
-        result.codechef = {};
+        // We'll derive it from daily_stats by calculating daily changes
+        const { data: dailyStats, error } = await supabase
+          .from('daily_stats')
+          .select('date, solved_count')
+          .eq('user_id', user_id)
+          .eq('platform', 'codechef')
+          .order('date', { ascending: true });
+
+        if (error) {
+          console.error('CodeChef daily_stats fetch error:', error.message);
+        } else if (dailyStats && dailyStats.length > 0) {
+          const dailySubmissions = {};
+          let prevCount = 0;
+
+          dailyStats.forEach((stat, index) => {
+            const change = index === 0 ? stat.solved_count : stat.solved_count - prevCount;
+            if (change > 0) {
+              dailySubmissions[stat.date] = change;
+            }
+            prevCount = stat.solved_count;
+          });
+
+          result.codechef = dailySubmissions;
+          console.log(`CodeChef calendar: ${Object.keys(dailySubmissions).length} active days`);
+        }
       } catch (error) {
         console.error('CodeChef calendar fetch error:', error.message);
       }

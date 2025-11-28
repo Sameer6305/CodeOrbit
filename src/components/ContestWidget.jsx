@@ -110,8 +110,12 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
   function formatStartTime(timeString) {
     const date = new Date(timeString);
     const now = new Date();
-    const diffTime = date - now;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Calculate difference in days
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfContestDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffTime = startOfContestDay - startOfToday;
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     
     const dateStr = date.toLocaleDateString("en-US", {
       month: "short",
@@ -120,8 +124,9 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
     });
     
     const timeStr = date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
+      hour: "numeric",
       minute: "2-digit",
+      hour12: true
     });
     
     let relativeTime = "";

@@ -14,11 +14,13 @@ import {
 } from "recharts";
 import { useStatsStore } from "../store/stats";
 import { useProfileStore } from "../store/profile";
+import { useAuthStore } from "../store/auth";
 import { TrendingUp, Calendar, BarChart3, Activity } from "lucide-react";
 
 export default function ActivityChart({ data }) {
   const { dailyStats, loading } = useStatsStore();
   const { profile } = useProfileStore();
+  const { user } = useAuthStore();
   const [timeRange, setTimeRange] = useState("12months"); // 12months, 6months, all
   const [chartType, setChartType] = useState("line"); // line, area
   const [submissionData, setSubmissionData] = useState(null);
@@ -27,11 +29,12 @@ export default function ActivityChart({ data }) {
   // Fetch submission calendar data from all platforms
   useEffect(() => {
     async function fetchSubmissionCalendar() {
-      if (!profile) return;
+      if (!profile || !user) return;
       
       setLoadingCalendar(true);
       try {
         const params = new URLSearchParams();
+        if (user.id) params.append('user_id', user.id);
         if (profile.leetcode_username) params.append('lc_username', profile.leetcode_username);
         if (profile.codeforces_handle) params.append('cf_handle', profile.codeforces_handle);
         if (profile.codechef_handle) params.append('cc_username', profile.codechef_handle);
@@ -58,7 +61,7 @@ export default function ActivityChart({ data }) {
     }
     
     fetchSubmissionCalendar();
-  }, [profile]);
+  }, [profile, user]);
   
   // Generate chart data based on selected time range using submission calendar
   function generateChartData() {

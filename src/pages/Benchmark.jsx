@@ -5,6 +5,11 @@ import { useAuthStore } from "../store/auth";
 import { useProfileStore } from "../store/profile";
 import { useStatsStore } from "../store/stats";
 import { 
+  parseCodeforcesUrl, 
+  parseLeetCodeUrl, 
+  parseCodeChefUrl 
+} from "../utils/platformHelpers";
+import { 
   RadarChart, 
   PolarGrid, 
   PolarAngleAxis, 
@@ -81,13 +86,18 @@ export default function Benchmark() {
     setError("");
 
     try {
+      // Parse URLs to extract handles (in case user pastes full URLs)
+      const cfHandle = compareHandles.codeforces ? parseCodeforcesUrl(compareHandles.codeforces) : '';
+      const lcHandle = compareHandles.leetcode ? parseLeetCodeUrl(compareHandles.leetcode) : '';
+      const ccHandle = compareHandles.codechef ? parseCodeChefUrl(compareHandles.codechef) : '';
+      
       const params = new URLSearchParams();
-      if (compareHandles.codeforces) params.append('cf_handle', compareHandles.codeforces);
-      if (compareHandles.leetcode) params.append('lc_username', compareHandles.leetcode);
-      if (compareHandles.codechef) params.append('cc_handle', compareHandles.codechef);
+      if (cfHandle) params.append('cf_handle', cfHandle);
+      if (lcHandle) params.append('lc_username', lcHandle);
+      if (ccHandle) params.append('cc_handle', ccHandle);
 
       console.log('🔍 Fetching comparison with params:', params.toString());
-      console.log('🔍 Handles:', compareHandles);
+      console.log('🔍 Parsed handles:', { cf: cfHandle, lc: lcHandle, cc: ccHandle });
       
       const apiUrl = `/api/compare?${params.toString()}`;
       console.log('🔍 API URL:', apiUrl);
@@ -108,9 +118,9 @@ export default function Benchmark() {
       
       // Check if we have any valid numeric data (>= 0)
       const hasValidData = 
-        (compareHandles.leetcode && typeof data.leetcode === 'number' && data.leetcode >= 0) ||
-        (compareHandles.codeforces && typeof data.codeforces === 'number' && data.codeforces >= 0) ||
-        (compareHandles.codechef && typeof data.codechef === 'number' && data.codechef >= 0);
+        (lcHandle && typeof data.leetcode === 'number' && data.leetcode >= 0) ||
+        (cfHandle && typeof data.codeforces === 'number' && data.codeforces >= 0) ||
+        (ccHandle && typeof data.codechef === 'number' && data.codechef >= 0);
       
       if (!hasValidData) {
         setError("No valid data found for the provided handles. Please verify the usernames are correct.");

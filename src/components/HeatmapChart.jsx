@@ -23,15 +23,24 @@ export default function HeatmapChart({ data }) {
       setLoadingCalendar(true);
       try {
         const params = new URLSearchParams();
-        if (profile.lc_username) params.append('lc_username', profile.lc_username);
-        if (profile.cf_handle) params.append('cf_handle', profile.cf_handle);
-        if (profile.cc_username) params.append('cc_username', profile.cc_username);
+        if (profile.leetcode_username) params.append('lc_username', profile.leetcode_username);
+        if (profile.codeforces_handle) params.append('cf_handle', profile.codeforces_handle);
+        if (profile.codechef_handle) params.append('cc_username', profile.codechef_handle);
         
-        const response = await fetch(`/api/submission-calendar?${params.toString()}`);
-        const data = await response.json();
-        setSubmissionData(data);
+        if (params.toString()) {
+          const response = await fetch(`/api/submission-calendar?${params.toString()}`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('📅 Heatmap submission data:', data);
+            setSubmissionData(data);
+          } else {
+            console.error('Failed to fetch submission calendar for heatmap:', response.status);
+            setSubmissionData(null);
+          }
+        }
       } catch (error) {
         console.error('Error fetching submission calendar:', error);
+        setSubmissionData(null);
       } finally {
         setLoadingCalendar(false);
       }

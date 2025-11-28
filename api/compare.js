@@ -26,6 +26,7 @@ export default async function handler(req, res) {
     // Fetch LeetCode data
     if (lc_username) {
       try {
+        console.log(`🔍 Fetching LeetCode data for: ${lc_username}`);
         const lcQuery = `
           query getUserProfile($username: String!) {
             matchedUser(username: $username) {
@@ -47,7 +48,11 @@ export default async function handler(req, res) {
           query: lcQuery,
           variables: { username: lc_username }
         }, {
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 
+            'Content-Type': 'application/json',
+            'Referer': 'https://leetcode.com'
+          },
+          timeout: 10000
         });
 
         if (lcResponse.data?.data?.matchedUser) {
@@ -55,20 +60,24 @@ export default async function handler(req, res) {
           const totalSolved = submissions.find(item => item.difficulty === "All")?.count || 0;
           result.leetcode = totalSolved;
           result.streaks.leetcode = lcResponse.data.data.matchedUser.userCalendar?.streak || 0;
-          console.log(`LeetCode data for ${lc_username}:`, totalSolved, 'solved');
+          console.log(`✅ LeetCode data for ${lc_username}:`, totalSolved, 'solved, streak:', result.streaks.leetcode);
         } else {
-          console.log(`LeetCode: No data found for ${lc_username}`);
+          console.log(`⚠️ LeetCode: No data found for ${lc_username}`);
+          result.leetcode = null; // Distinguish between 0 and no data
         }
       } catch (error) {
-        console.error('LeetCode fetch error for', lc_username, ':', error.message);
-        // Keep result.leetcode at 0
+        console.error('❌ LeetCode fetch error for', lc_username, ':', error.message);
+        result.leetcode = null; // Distinguish between 0 and error
       }
     }
 
     // Fetch Codeforces data
     if (cf_handle) {
       try {
-        const cfResponse = await axios.get(`https://codeforces.com/api/user.status?handle=${cf_handle}`);
+        console.log(`🔍 Fetching Codeforces data for: ${cf_handle}`);
+        const cfResponse = await axios.get(`https://codeforces.com/api/user.status?handle=${cf_handle}`, {
+          timeout: 10000
+        });
         if (cfResponse.data.status === 'OK') {
           const submissions = cfResponse.data.result;
           const solvedProblems = new Set();
@@ -81,7 +90,7 @@ export default async function handler(req, res) {
           });
 
           result.codeforces = solvedProblems.size;
-          console.log(`Codeforces data for ${cf_handle}:`, solvedProblems.size, 'solved');
+          console.log(`✅ Codeforces data for ${cf_handle}:`, solvedProblems.size, 'solved');
 
           // Calculate streak from submission history
           const dates = submissions
@@ -105,22 +114,26 @@ export default async function handler(req, res) {
           }
 
           result.streaks.codeforces = currentStreak;
+          console.log(`✅ Codeforces streak for ${cf_handle}:`, currentStreak);
         } else {
-          console.log(`Codeforces: Invalid response for ${cf_handle}`);
+          console.log(`⚠️ Codeforces: Invalid response for ${cf_handle}`);
+          result.codeforces = null;
         }
       } catch (error) {
-        console.error('Codeforces fetch error for', cf_handle, ':', error.message);
-        // Keep result.codeforces at 0
+        console.error('❌ Codeforces fetch error for', cf_handle, ':', error.message);
+        result.codeforces = null;
       }
     }
 
     // Fetch CodeChef data
     if (cc_handle) {
       try {
+        console.log(`🔍 Fetching CodeChef data for: ${cc_handle}`);
         const ccResponse = await axios.get(`https://www.codechef.com/users/${cc_handle}`, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
+          },
+          timeout: 10000
         });
 
         const html = ccResponse.data;
@@ -132,9 +145,10 @@ export default async function handler(req, res) {
         
         if (solvedMatch) {
           result.codechef = parseInt(solvedMatch[1], 10);
-          console.log(`CodeChef data for ${cc_handle}:`, result.codechef, 'solved');
+          console.log(`✅ CodeChef data for ${cc_handle}:`, result.codechef, 'solved');
         } else {
-          console.log(`CodeChef: Could not parse solved count for ${cc_handle}`);
+          console.log(`⚠️ CodeChef: Could not parse solved count for ${cc_handle}`);
+          result.codechef = null;
         }
 
         // Try to extract streak (CodeChef shows "Current Streak")
@@ -143,14 +157,39 @@ export default async function handler(req, res) {
         
         if (streakMatch) {
           result.streaks.codechef = parseInt(streakMatch[1], 10);
+          console.log(`✅ CodeChef streak for ${cc_handle}:`, result.streaks.codechef);
         }
       } catch (error) {
-        console.error('CodeChef fetch error for', cc_handle, ':', error.message);
-        // Keep result.codechef at 0
+        console.error('❌ CodeChef fetch error for', cc_handle, ':', error.message);
+        result.codechef = null;
       }
     }
 
-    console.log('Final comparison result:', result);
+    console.log('📊 Final comparison result:', result);
+    
+    // Check if we got any valid data
+    const hasAnyData = result.leetcode !== null || result.codeforces !== null || result.codechef !== null;
+    
+    if (!hasAnyData) {
+      console.log('⚠️ No data could be fetched for any platform');
+      return res.status(404).json({ 
+        error: 'No data found for the provided handles',
+        details: 'Please verify the usernames are correct and try again',
+        result
+      });
+    }
+    
+    // Convert null values back to 0 for platforms that weren't queried
+    Object.keys(result).forEach(key => {
+      if (key === 'streaks') {
+        Object.keys(result.streaks).forEach(platform => {
+          if (result.streaks[platform] === null) result.streaks[platform] = 0;
+        });
+      } else if (result[key] === null) {
+        result[key] = 0;
+      }
+    });
+    
     return res.status(200).json(result);
 
   } catch (error) {

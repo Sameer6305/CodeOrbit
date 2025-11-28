@@ -2,7 +2,6 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   BarChart3,
-  Trophy,
   Settings,
   X,
   Users,
@@ -26,11 +25,6 @@ export default function Sidebar({ isOpen, onClose }) {
       path: "/benchmark",
       icon: <Users className="w-5 h-5" />,
       label: "Benchmark",
-    },
-    {
-      path: "/contests",
-      icon: <Trophy className="w-5 h-5" />,
-      label: "Contests",
     },
     {
       path: "/settings",

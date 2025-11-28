@@ -165,31 +165,7 @@ export default function Settings() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 space-y-2">
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-left bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg font-medium">
-              <User className="w-5 h-5" />
-              Profile
-            </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg font-medium">
-              <Code2 className="w-5 h-5" />
-              Platforms
-            </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg font-medium">
-              <Bell className="w-5 h-5" />
-              Notifications
-            </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg font-medium">
-              <Shield className="w-5 h-5" />
-              Privacy
-            </button>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
           {/* Profile Section */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
@@ -384,9 +360,8 @@ export default function Settings() {
                 <Save className="w-5 h-5" />
                 Save Changes
               </>
-            )}
+            )}>
           </button>
-        </div>
       </div>
     </div>
   );

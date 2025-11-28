@@ -32,15 +32,26 @@ export default function ActivityChart({ data }) {
       setLoadingCalendar(true);
       try {
         const params = new URLSearchParams();
-        if (profile.lc_username) params.append('lc_username', profile.lc_username);
-        if (profile.cf_handle) params.append('cf_handle', profile.cf_handle);
-        if (profile.cc_username) params.append('cc_username', profile.cc_username);
+        if (profile.leetcode_username) params.append('lc_username', profile.leetcode_username);
+        if (profile.codeforces_handle) params.append('cf_handle', profile.codeforces_handle);
+        if (profile.codechef_handle) params.append('cc_username', profile.codechef_handle);
         
-        const response = await fetch(`/api/submission-calendar?${params.toString()}`);
-        const data = await response.json();
-        setSubmissionData(data);
+        if (params.toString()) {
+          const response = await fetch(`/api/submission-calendar?${params.toString()}`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('📊 Submission calendar data:', data);
+            setSubmissionData(data);
+          } else {
+            console.error('Failed to fetch submission calendar:', response.status);
+            // Fall back to using dailyStats
+            setSubmissionData(null);
+          }
+        }
       } catch (error) {
         console.error('Error fetching submission calendar:', error);
+        // Fall back to using dailyStats
+        setSubmissionData(null);
       } finally {
         setLoadingCalendar(false);
       }
@@ -51,6 +62,25 @@ export default function ActivityChart({ data }) {
   
   // Generate chart data based on selected time range using submission calendar
   function generateChartData() {
+    // If submission calendar data is available, use it
+    if (submissionData && (
+      Object.keys(submissionData.leetcode || {}).length > 0 ||
+      Object.keys(submissionData.codeforces || {}).length > 0 ||
+      Object.keys(submissionData.codechef || {}).length > 0
+    )) {
+      return generateChartDataFromSubmissions();
+    }
+    
+    // Fallback: use dailyStats
+    if (dailyStats && dailyStats.length > 0) {
+      return generateChartDataFromDailyStats();
+    }
+    
+    return [];
+  }
+  
+  // Generate chart data from submission calendar
+  function generateChartDataFromSubmissions() {
     if (!submissionData) return [];
     
     const today = new Date();
@@ -136,6 +166,94 @@ export default function ActivityChart({ data }) {
         LeetCode: monthData.leetcode,
         Codeforces: monthData.codeforces,
         CodeChef: monthData.codechef,
+      });
+      
+      iterDate.setMonth(iterDate.getMonth() + 1);
+    }
+    
+    return months;
+  }
+  
+  // Fallback: Generate chart data from dailyStats
+  function generateChartDataFromDailyStats() {
+    if (!dailyStats || dailyStats.length === 0) return [];
+    
+    const today = new Date();
+    let startDate;
+    
+    // Determine start date based on time range
+    switch (timeRange) {
+      case "6months":
+        startDate = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+        break;
+      case "12months":
+        startDate = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+        break;
+      case "all":
+        const dates = dailyStats.map(s => new Date(s.date));
+        startDate = new Date(Math.min(...dates));
+        startDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        break;
+      default:
+        startDate = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+    }
+    
+    const startDateStr = startDate.toISOString().split("T")[0];
+    const recentStats = dailyStats.filter((s) => s.date >= startDateStr);
+    
+    // Group by month and platform, track changes (not cumulative)
+    const monthMap = {};
+    const platformData = {};
+    
+    // Group by platform first
+    recentStats.forEach((stat) => {
+      if (!platformData[stat.platform]) {
+        platformData[stat.platform] = [];
+      }
+      platformData[stat.platform].push(stat);
+    });
+    
+    // Sort each platform's data by date
+    Object.keys(platformData).forEach((platform) => {
+      platformData[platform].sort((a, b) => new Date(a.date) - new Date(b.date));
+    });
+    
+    // Calculate daily changes for each platform and group by month
+    Object.keys(platformData).forEach((platform) => {
+      const stats = platformData[platform];
+      let prevCount = 0;
+      
+      stats.forEach((stat, index) => {
+        const change = index === 0 ? stat.solved_count : stat.solved_count - prevCount;
+        if (change > 0) {
+          const date = new Date(stat.date);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          
+          if (!monthMap[monthKey]) {
+            monthMap[monthKey] = { leetcode: 0, codeforces: 0, codechef: 0 };
+          }
+          
+          monthMap[monthKey][platform] = (monthMap[monthKey][platform] || 0) + change;
+        }
+        prevCount = stat.solved_count;
+      });
+    });
+    
+    // Generate data for each month
+    const months = [];
+    const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    let iterDate = new Date(startDate);
+    
+    while (iterDate <= currentMonth) {
+      const monthKey = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}`;
+      const monthData = monthMap[monthKey] || { leetcode: 0, codeforces: 0, codechef: 0 };
+      
+      months.push({
+        month: iterDate.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+        fullDate: new Date(iterDate),
+        LeetCode: monthData.leetcode || 0,
+        Codeforces: monthData.codeforces || 0,
+        CodeChef: monthData.codechef || 0,
       });
       
       iterDate.setMonth(iterDate.getMonth() + 1);

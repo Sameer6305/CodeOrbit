@@ -86,33 +86,36 @@ export default function Benchmark() {
       if (compareHandles.leetcode) params.append('lc_username', compareHandles.leetcode);
       if (compareHandles.codechef) params.append('cc_handle', compareHandles.codechef);
 
-      console.log('Fetching comparison with params:', params.toString());
+      console.log('🔍 Fetching comparison with params:', params.toString());
+      console.log('🔍 Handles:', compareHandles);
       
       const response = await fetch(`/api/compare?${params.toString()}`);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch comparison data');
-      }
-
-      const data = await response.json();
-      console.log('Comparison data received:', data);
+      console.log('📡 Response status:', response.status, response.statusText);
       
-      // Check if we have any data from the handles that were provided
+      const data = await response.json();
+      console.log('📊 Comparison data received:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.error || data.details || 'Failed to fetch comparison data');
+      }
+      
+      // Check if we have any valid data (at least one platform returned data)
       const hasValidData = 
-        (compareHandles.leetcode && data.leetcode !== undefined) ||
-        (compareHandles.codeforces && data.codeforces !== undefined) ||
-        (compareHandles.codechef && data.codechef !== undefined);
+        (compareHandles.leetcode && data.leetcode >= 0) ||
+        (compareHandles.codeforces && data.codeforces >= 0) ||
+        (compareHandles.codechef && data.codechef >= 0);
       
       if (!hasValidData) {
         setError("No data found for the provided handles. Please verify the usernames are correct.");
         setComparisonData(null);
       } else {
+        console.log('✅ Valid data found, setting comparison data');
         setComparisonData(data);
         setError(""); // Clear any previous errors
       }
     } catch (err) {
-      console.error('Comparison error:', err);
+      console.error('❌ Comparison error:', err);
       setError(err.message || "Failed to fetch comparison data. Please check the handles and try again.");
       setComparisonData(null); // Clear old data on error
     } finally {

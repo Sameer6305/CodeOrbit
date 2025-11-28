@@ -250,7 +250,8 @@ export const useStatsStore = create((set, get) => ({
       codechef: 0,
     };
     
-    if (dailyStats.length === 0) {
+    if (!dailyStats || dailyStats.length === 0) {
+      console.log('📊 No daily stats available');
       return breakdown;
     }
     

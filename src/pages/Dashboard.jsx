@@ -37,13 +37,15 @@ export default function Dashboard() {
     }
   }, [profile]);
 
-  const { totalSolved, activeDays } = getTotalStats();
-  const platformBreakdown = getPlatformBreakdown();
+  const totalStats = getTotalStats();
+  const totalSolved = totalStats?.totalSolved || 0;
+  const activeDays = totalStats?.activeDays || 0;
+  const platformBreakdown = getPlatformBreakdown() || { leetcode: 0, codeforces: 0, codechef: 0 };
   
   // Get streak data for each platform
-  const cfStreak = getPlatformStreak('codeforces');
-  const lcStreak = getPlatformStreak('leetcode');
-  const ccStreak = getPlatformStreak('codechef');
+  const cfStreak = getPlatformStreak('codeforces') || { current: 0, longest: 0 };
+  const lcStreak = getPlatformStreak('leetcode') || { current: 0, longest: 0 };
+  const ccStreak = getPlatformStreak('codechef') || { current: 0, longest: 0 };
   
   // Get all platform streaks for display
   const platformStreaks = [
@@ -226,12 +228,11 @@ export default function Dashboard() {
         <div className="absolute -left-10 -top-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
       </div>
 
-      {/* Development Notice */}
-      {import.meta.env.DEV && (
+      {/* No data notice */}
+      {!loading && totalSolved === 0 && profile && (profile.codeforces_handle || profile.leetcode_username || profile.codechef_handle) && (
         <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-2xl p-5 shadow-lg backdrop-blur-sm">
           <p className="text-blue-800 dark:text-blue-200 text-sm font-medium">
-            <strong className="text-base">ℹ️ Development Mode:</strong> The "Sync All Platforms" button requires deployment to Vercel to work. 
-            API routes only function in production. See <code className="bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded font-mono text-xs">DEVELOPMENT_NOTES.md</code> for details.
+            <strong className="text-base">ℹ️ Getting Started:</strong> Click the "Sync All Platforms" button above to fetch your coding statistics from all configured platforms.
           </p>
         </div>
       )}

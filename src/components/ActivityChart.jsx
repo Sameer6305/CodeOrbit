@@ -86,6 +86,12 @@ export default function ActivityChart({ data }) {
   function generateChartDataFromSubmissions() {
     if (!submissionData) return [];
     
+    console.log('📊 Generating activity chart from submissions:', {
+      leetcode_dates: Object.keys(submissionData.leetcode || {}).length,
+      codeforces_dates: Object.keys(submissionData.codeforces || {}).length,
+      codechef_dates: Object.keys(submissionData.codechef || {}).length
+    });
+    
     const today = new Date();
     let startDate;
     
@@ -153,6 +159,8 @@ export default function ActivityChart({ data }) {
         monthMap[monthKey].codechef += count;
       }
     });
+    
+    console.log('📊 Monthly data merged from all platforms:', monthMap);
     
     // Generate data for each month
     const months = [];

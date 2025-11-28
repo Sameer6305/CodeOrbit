@@ -56,6 +56,12 @@ export default function HeatmapChart({ data }) {
   function generateHeatmapData() {
     if (!submissionData) return [];
     
+    console.log('🗓️ Generating heatmap from submission data:', {
+      leetcode_days: Object.keys(submissionData.leetcode || {}).length,
+      codeforces_days: Object.keys(submissionData.codeforces || {}).length,
+      codechef_days: Object.keys(submissionData.codechef || {}).length
+    });
+    
     const values = [];
     const today = new Date();
     
@@ -65,17 +71,28 @@ export default function HeatmapChart({ data }) {
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split("T")[0];
       
-      // Sum all platforms for this date
+      // MERGE all platforms for this date
       const leetcodeCount = submissionData.leetcode?.[dateStr] || 0;
       const codeforcesCount = submissionData.codeforces?.[dateStr] || 0;
       const codechefCount = submissionData.codechef?.[dateStr] || 0;
-      const count = leetcodeCount + codeforcesCount + codechefCount;
+      const totalCount = leetcodeCount + codeforcesCount + codechefCount;
+      
+      if (totalCount > 0) {
+        console.log(`📅 ${dateStr}: LC=${leetcodeCount}, CF=${codeforcesCount}, CC=${codechefCount}, Total=${totalCount}`);
+      }
       
       values.push({
         date: dateStr,
-        count: count,
+        count: totalCount,
+        leetcode: leetcodeCount,
+        codeforces: codeforcesCount,
+        codechef: codechefCount
       });
     }
+    
+    const activeDays = values.filter(v => v.count > 0).length;
+    console.log(`🗓️ Heatmap generated: ${activeDays} active days from merged platform data`);
+    
     return values;
   }
 
@@ -116,8 +133,17 @@ export default function HeatmapChart({ data }) {
           }}
           tooltipDataAttrs={(value) => {
             if (!value || !value.date) return {};
+            const breakdown = [];
+            if (value.leetcode > 0) breakdown.push(`LeetCode: ${value.leetcode}`);
+            if (value.codeforces > 0) breakdown.push(`Codeforces: ${value.codeforces}`);
+            if (value.codechef > 0) breakdown.push(`CodeChef: ${value.codechef}`);
+            
             return {
               "data-tooltip-id": "heatmap-tooltip",
+              "data-tooltip-content": value.count > 0 
+                ? `${value.date}: ${value.count} submissions\n${breakdown.join(', ')}`
+                : `${value.date}: No activity`,
+            };
               "data-tooltip-content": `${value.date}: ${value.count || 0} submissions`,
             };
           }}

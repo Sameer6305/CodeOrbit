@@ -161,19 +161,24 @@ export default async function handler(req, res) {
         
         const ccResponse = await fetch(`https://www.codechef.com/users/${cc_handle}`, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           }
         });
 
         const html = await ccResponse.text();
         
-        // Extract solved count - multiple patterns to try
-        const solvedMatch = 
-          html.match(/<h3>Problems\s+Solved<\/h3>\s*<div[^>]*>\s*<h5>(\d+)<\/h5>/i) ||
-          html.match(/fully\s+solved[^>]*>\s*<h5>(\d+)<\/h5>/i) ||
-          html.match(/problems?\s+solved[^>]*>\s*(\d+)/i) ||
-          html.match(/"fully_solved":\s*(\d+)/i) ||
-          html.match(/Fully\s+Solved[^>]*>\s*(\d+)/i);
+        // Primary pattern: Look for "Total Problems Solved:" in h3 tags (used in codechef.js)
+        let solvedMatch = html.match(/<h3[^>]*>Total Problems Solved:\s*(\d+)/i);
+        
+        // Fallback patterns if primary doesn't work
+        if (!solvedMatch) {
+          solvedMatch = 
+            html.match(/Total\s+Problems\s+Solved:\s*(\d+)/i) ||
+            html.match(/<h3>Problems\s+Solved<\/h3>\s*<div[^>]*>\s*<h5>(\d+)<\/h5>/i) ||
+            html.match(/fully\s+solved[^>]*>\s*<h5>(\d+)<\/h5>/i) ||
+            html.match(/"fully_solved":\s*(\d+)/i) ||
+            html.match(/Fully\s+Solved[^>]*>\s*(\d+)/i);
+        }
         
         if (solvedMatch) {
           result.codechef = parseInt(solvedMatch[1], 10);
@@ -181,13 +186,14 @@ export default async function handler(req, res) {
           console.log(`✅ CodeChef data for ${cc_handle}:`, result.codechef, 'solved');
         } else {
           console.log(`⚠️ CodeChef: Could not parse solved count for ${cc_handle}`);
+          console.log('HTML preview:', html.substring(0, 1000));
         }
 
         // Try to extract streak
         const streakMatch = 
           html.match(/current\s+streak[^>]*>\s*<span[^>]*>(\d+)<\/span>/i) ||
           html.match(/streak[^>]*>\s*(\d+)\s*days?/i) ||
-          html.match(/"streak":\s*(\d+)/i);
+          html.match(/"current_streak":\s*(\d+)/i);
         
         if (streakMatch) {
           result.streaks.codechef = parseInt(streakMatch[1], 10);

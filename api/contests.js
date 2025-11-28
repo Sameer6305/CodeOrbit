@@ -37,18 +37,27 @@ export default async function handler(req, res) {
           
           // Clean up contest name (remove common prefixes and clean formatting)
           let contestName = nextContest.event || 'Contest';
+          const originalName = contestName;
           
-          // Remove platform name prefixes
+          // Remove platform name prefixes and clean up
           contestName = contestName
-            .replace(/^LeetCode\s+/i, '')
-            .replace(/^CodeChef\s+/i, '')
-            .replace(/^Codeforces\s+/i, '')
+            .replace(/^LeetCode\s+/ig, '')
+            .replace(/^CodeChef\s+/ig, '')
+            .replace(/^Codeforces\s+/ig, '')
+            .replace(/^CF\s+/ig, '')
+            .replace(/^LC\s+/ig, '')
+            .replace(/^CC\s+/ig, '')
+            .replace(/\s+Round\s+#?(\d+)/i, ' Round $1') // Normalize round numbers
+            .replace(/\s+\(Div\.?\s*(\d+)\)/i, ' (Div. $1)') // Normalize divisions
+            .replace(/\s+/g, ' ') // Collapse multiple spaces
             .trim();
           
-          // If name is still empty after cleaning, use original
-          if (!contestName) {
-            contestName = nextContest.event;
+          // If name is empty or too short after cleaning, use original
+          if (!contestName || contestName.length < 3) {
+            contestName = originalName;
           }
+          
+          console.log(`Contest name: "${originalName}" -> "${contestName}"`);
           
           allContests.push({
             name: contestName,

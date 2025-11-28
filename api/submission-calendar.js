@@ -92,24 +92,47 @@ export default async function handler(req, res) {
           
           const dailySubmissions = {};
           
-          // Calculate daily changes (skip first entry to avoid showing cumulative spike)
-          dailyStats.forEach((stat, index) => {
-            if (index === 0) {
-              // Skip first entry - we don't know the previous value
-              // This prevents showing the entire history as a spike on first sync day
-              return;
+          if (dailyStats.length === 1) {
+            // Only one record - assume user solved these gradually over past months
+            // Distribute evenly to avoid spike (rough estimate)
+            const totalSolved = dailyStats[0].solved_count;
+            const today = new Date(dailyStats[0].date);
+            const monthsBack = Math.min(Math.ceil(totalSolved / 20), 12); // Assume ~20 per month, max 12 months
+            const perMonth = Math.ceil(totalSolved / monthsBack);
+            
+            for (let i = 0; i < monthsBack; i++) {
+              const date = new Date(today);
+              date.setMonth(date.getMonth() - i);
+              date.setDate(1); // First of month
+              const dateStr = date.toISOString().split('T')[0];
+              dailySubmissions[dateStr] = perMonth;
             }
             
-            const prevStat = dailyStats[index - 1];
-            const change = stat.solved_count - prevStat.solved_count;
+            console.log(`CodeChef: Single record, distributed ${totalSolved} problems over ${monthsBack} months`);
+          } else {
+            // Calculate daily changes from multiple records
+            dailyStats.forEach((stat, index) => {
+              if (index === 0) {
+                // For first entry, assume it represents problems solved in past month
+                const count = stat.solved_count;
+                if (count > 0) {
+                  dailySubmissions[stat.date] = Math.min(count, 50); // Cap at 50 to avoid huge spike
+                }
+                return;
+              }
+              
+              const prevStat = dailyStats[index - 1];
+              const change = stat.solved_count - prevStat.solved_count;
+              
+              if (change > 0) {
+                dailySubmissions[stat.date] = change;
+              }
+            });
             
-            if (change > 0) {
-              dailySubmissions[stat.date] = change;
-            }
-          });
+            console.log(`CodeChef calendar: ${Object.keys(dailySubmissions).length} active days`);
+          }
           
           result.codechef = dailySubmissions;
-          console.log(`CodeChef calendar: ${Object.keys(dailySubmissions).length} active days (first entry skipped to avoid spike)`);
         }
       } catch (error) {
         console.error('CodeChef calendar fetch error:', error.message);

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Compare API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        input {
+            margin: 10px 0;
+            padding: 10px;
+            width: 300px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f3f4f6;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Compare API</h1>
+    
+    <div>
+        <label>LeetCode Username:</label><br>
+        <input type="text" id="lc_username" placeholder="e.g., tourist" value="tourist">
+    </div>
+    
+    <div>
+        <label>Codeforces Handle:</label><br>
+        <input type="text" id="cf_handle" placeholder="e.g., tourist" value="tourist">
+    </div>
+    
+    <div>
+        <label>CodeChef Handle:</label><br>
+        <input type="text" id="cc_handle" placeholder="e.g., handle">
+    </div>
+    
+    <button onclick="testAPI()">Test API</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const lc = document.getElementById('lc_username').value.trim();
+            const cf = document.getElementById('cf_handle').value.trim();
+            const cc = document.getElementById('cc_handle').value.trim();
+            
+            const params = new URLSearchParams();
+            if (lc) params.append('lc_username', lc);
+            if (cf) params.append('cf_handle', cf);
+            if (cc) params.append('cc_handle', cc);
+            
+            const url = `/api/compare?${params.toString()}`;
+            
+            document.getElementById('result').textContent = `Testing: ${url}\n\nLoading...`;
+            
+            try {
+                console.log('🔍 Fetching:', url);
+                const response = await fetch(url);
+                console.log('📡 Response:', response);
+                
+                const data = await response.json();
+                console.log('📊 Data:', data);
+                
+                document.getElementById('result').textContent = 
+                    `Status: ${response.status} ${response.statusText}\n\n` +
+                    `Response:\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('result').textContent = 
+                    `Error: ${error.message}\n\n${error.stack}`;
+            }
+        }
+    </script>
+</body>
+</html>

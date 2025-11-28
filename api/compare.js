@@ -14,9 +14,20 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { cf_handle, lc_username, cc_handle } = req.query;
+  const { cf_handle, lc_username, cc_handle, test } = req.query;
+  
+  // Health check endpoint
+  if (test === 'ping') {
+    return res.status(200).json({ 
+      status: 'ok', 
+      version: '2.0',
+      message: 'Compare API is working',
+      timestamp: new Date().toISOString()
+    });
+  }
 
   console.log('🎯 Compare API called with:', { cf_handle, lc_username, cc_handle });
+  console.log('🎯 API Version: 2.0 - Using same methods as user sync APIs');
 
   if (!cf_handle && !lc_username && !cc_handle) {
     return res.status(400).json({ error: 'At least one profile handle is required' });

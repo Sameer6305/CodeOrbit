@@ -17,6 +17,11 @@ export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
   const [syncResults, setSyncResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
+  const [problemTypes, setProblemTypes] = useState([]);
+  const [loadingTypes, setLoadingTypes] = useState(false);
+  const [badges, setBadges] = useState({ leetcode: 0, codeforces: 0, codechef: 0, total: 0 });
+  const [loadingBadges, setLoadingBadges] = useState(false);
+  const [contestRefreshTrigger, setContestRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (user?.id) {
@@ -24,6 +29,13 @@ export default function Dashboard() {
       fetchDailyStats(user.id);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (profile && (profile.codeforces_handle || profile.leetcode_username || profile.codechef_handle)) {
+      fetchProblemTypes();
+      fetchBadges();
+    }
+  }, [profile]);
 
   const { totalSolved, activeDays } = getTotalStats();
   const platformBreakdown = getPlatformBreakdown();
@@ -33,26 +45,60 @@ export default function Dashboard() {
   const lcStreak = getPlatformStreak('leetcode');
   const ccStreak = getPlatformStreak('codechef');
   
-  // Calculate combined current streak (max of all platforms)
-  const combinedCurrentStreak = Math.max(
-    cfStreak.current,
-    lcStreak.current,
-    ccStreak.current
-  );
-  
-  // Find longest streak across all platforms
-  const allStreaks = [
-    { ...cfStreak, name: 'Codeforces' },
-    { ...lcStreak, name: 'LeetCode' },
-    { ...ccStreak, name: 'CodeChef' }
-  ];
-  const longestStreakData = allStreaks.reduce((max, current) => 
-    current.longest > max.longest ? current : max
-  , { longest: 0, name: 'none' });
+  // Get all platform streaks for display
+  const platformStreaks = [
+    { platform: 'LeetCode', current: lcStreak.current, emoji: '🟡', handle: profile?.leetcode_username },
+    { platform: 'Codeforces', current: cfStreak.current, emoji: '🔵', handle: profile?.codeforces_handle },
+    { platform: 'CodeChef', current: ccStreak.current, emoji: '🟤', handle: profile?.codechef_handle }
+  ].filter(s => s.handle); // Only show configured platforms
 
   const handleRefresh = () => {
     if (user?.id) {
       fetchDailyStats(user.id);
+    }
+  };
+
+  const fetchProblemTypes = async () => {
+    if (!profile) return;
+    
+    setLoadingTypes(true);
+    try {
+      const params = new URLSearchParams();
+      if (profile.codeforces_handle) params.append('codeforces_handle', profile.codeforces_handle);
+      if (profile.leetcode_username) params.append('leetcode_username', profile.leetcode_username);
+      if (profile.codechef_handle) params.append('codechef_handle', profile.codechef_handle);
+      
+      const response = await fetch(`/api/problem-types?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setProblemTypes(data.topTypes || []);
+      }
+    } catch (error) {
+      console.error('Error fetching problem types:', error);
+    } finally {
+      setLoadingTypes(false);
+    }
+  };
+
+  const fetchBadges = async () => {
+    if (!profile) return;
+    
+    setLoadingBadges(true);
+    try {
+      const params = new URLSearchParams();
+      if (profile.codeforces_handle) params.append('codeforces_handle', profile.codeforces_handle);
+      if (profile.leetcode_username) params.append('leetcode_username', profile.leetcode_username);
+      if (profile.codechef_handle) params.append('codechef_handle', profile.codechef_handle);
+      
+      const response = await fetch(`/api/badges?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setBadges(data.badges || { leetcode: 0, codeforces: 0, codechef: 0, total: 0 });
+      }
+    } catch (error) {
+      console.error('Error fetching badges:', error);
+    } finally {
+      setLoadingBadges(false);
     }
   };
 
@@ -124,9 +170,12 @@ export default function Dashboard() {
     setSyncResults(syncResults);
     setSyncing(false);
 
-    // Refresh dashboard data after sync
+    // Refresh all dashboard data after sync
     setTimeout(() => {
       fetchDailyStats(user.id);
+      fetchProblemTypes();
+      fetchBadges();
+      setContestRefreshTrigger(prev => prev + 1); // Trigger contest refresh
     }, 1000);
 
     // Hide results after 5 seconds
@@ -221,15 +270,20 @@ export default function Dashboard() {
         />
         <StatCard
           icon={<TrendingUp className="w-8 h-8 text-green-600" />}
-          title="Current Streak"
-          value={loading ? "..." : `${combinedCurrentStreak} days`}
+          title="Current Streaks"
+          value={loading ? "..." : ""}
           change={
-            <div className="space-y-0.5 text-xs mt-1">
-              {profile?.leetcode_username && lcStreak.current > 0 && <div>🟡 LeetCode: {lcStreak.current}d</div>}
-              {profile?.codeforces_handle && cfStreak.current > 0 && <div>🔵 Codeforces: {cfStreak.current}d</div>}
-              {profile?.codechef_handle && ccStreak.current > 0 && <div>🟤 CodeChef: {ccStreak.current}d</div>}
-              {combinedCurrentStreak === 0 && (profile?.leetcode_username || profile?.codeforces_handle || profile?.codechef_handle) && "Solve today to start!"}
-              {!profile?.leetcode_username && !profile?.codeforces_handle && !profile?.codechef_handle && "Add platforms in Settings"}
+            <div className="space-y-1 text-sm mt-1">
+              {platformStreaks.length > 0 ? (
+                platformStreaks.map((streak, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
+                    <span>{streak.emoji} {streak.platform}:</span>
+                    <span className="font-bold">{streak.current} days</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs">Add platforms in Settings</div>
+              )}
             </div>
           }
           bgColor="bg-green-50 dark:bg-green-900/20"
@@ -237,17 +291,32 @@ export default function Dashboard() {
         />
         <StatCard
           icon={<Target className="w-8 h-8 text-purple-600" />}
-          title="Longest Streak"
-          value={loading ? "..." : `${longestStreakData.longest} days`}
-          change={longestStreakData.longest > 0 ? `🏆 ${longestStreakData.name}` : 'Start solving!'}
+          title="Problem Types"
+          value={loadingTypes ? "..." : problemTypes.length > 0 ? `${problemTypes.length}+` : "0"}
+          change={
+            <div className="space-y-0.5 text-xs mt-1">
+              {problemTypes.slice(0, 3).map((type, idx) => (
+                <div key={idx}>📚 {type}</div>
+              ))}
+              {problemTypes.length > 3 && <div className="text-gray-400">+{problemTypes.length - 3} more</div>}
+              {problemTypes.length === 0 && "Solve to discover"}
+            </div>
+          }
           bgColor="bg-purple-50 dark:bg-purple-900/20"
           delay={0.2}
         />
         <StatCard
           icon={<Award className="w-8 h-8 text-orange-600" />}
-          title="Active Days"
-          value={loading ? "..." : activeDays.toString()}
-          change="Days with activity"
+          title="Badges & Achievements"
+          value={loadingBadges ? "..." : badges.total.toString()}
+          change={
+            <div className="space-y-0.5 text-xs mt-1">
+              {profile?.leetcode_username && badges.leetcode > 0 && <div>🟡 LeetCode: {badges.leetcode}</div>}
+              {profile?.codeforces_handle && badges.codeforces > 0 && <div>🔵 Codeforces: {badges.codeforces}</div>}
+              {profile?.codechef_handle && badges.codechef > 0 && <div>🟤 CodeChef: {badges.codechef}</div>}
+              {badges.total === 0 && "Earn badges by solving!"}
+            </div>
+          }
           bgColor="bg-orange-50 dark:bg-orange-900/20"
           delay={0.3}
         />
@@ -276,7 +345,7 @@ export default function Dashboard() {
       )}
 
       {/* Contest Widget */}
-      <ContestWidget />
+      <ContestWidget refreshTrigger={contestRefreshTrigger} />
     </div>
   );
 }

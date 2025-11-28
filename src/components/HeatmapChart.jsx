@@ -46,10 +46,10 @@ export default function HeatmapChart({ data }) {
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
       <div className="mb-4">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-          Contribution Heatmap
+          Activity Heatmap
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Your activity over the past year across all platforms
+          Your coding activity over the past year across all platforms
         </p>
       </div>
       

@@ -5,6 +5,7 @@ import {
   Trophy,
   Settings,
   X,
+  Users,
 } from "lucide-react";
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -25,6 +26,11 @@ export default function Sidebar({ isOpen, onClose }) {
       path: "/analytics",
       icon: <BarChart3 className="w-5 h-5" />,
       label: "Analytics",
+    },
+    {
+      path: "/benchmark",
+      icon: <Users className="w-5 h-5" />,
+      label: "Benchmark",
     },
     {
       path: "/contests",

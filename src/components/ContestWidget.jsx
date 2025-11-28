@@ -3,14 +3,14 @@ import { Calendar, Clock, ExternalLink, Loader, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { getContestsUrl } from "../utils/platformHelpers";
 
-export default function ContestWidget() {
+export default function ContestWidget({ refreshTrigger = 0 }) {
   const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     fetchContests();
-  }, []);
+  }, [refreshTrigger]); // Re-fetch when trigger changes
 
   const fetchContests = async () => {
     try {
@@ -66,12 +66,27 @@ export default function ContestWidget() {
 
   function formatStartTime(timeString) {
     const date = new Date(timeString);
-    return date.toLocaleString("en-US", {
+    const now = new Date();
+    const diffTime = date - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    const dateStr = date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    });
+    
+    const timeStr = date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
     });
+    
+    let relativeTime = "";
+    if (diffDays === 0) relativeTime = "Today";
+    else if (diffDays === 1) relativeTime = "Tomorrow";
+    else if (diffDays > 1 && diffDays <= 7) relativeTime = `In ${diffDays} days`;
+    
+    return { dateStr, timeStr, relativeTime };
   }
 
   function getPlatformColor(platform) {
@@ -141,53 +156,67 @@ export default function ContestWidget() {
             Showing sample data
           </p>
         </div>
+      ) : contests.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            No upcoming contests found. Check back later!
+          </p>
+        </div>
       ) : (
         <div className="space-y-3">
-          {contests.map((contest, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span
-                      className={`${getPlatformColor(
-                        contest.platform
-                      )} text-white text-xs font-semibold px-2 py-1 rounded-full`}
-                    >
-                      {contest.platform}
-                    </span>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                    {contest.name}
-                  </h3>
-                  <div className="flex flex-col sm:flex-row gap-2 text-xs text-gray-600 dark:text-gray-400">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      <span>{formatStartTime(contest.start_time)}</span>
+          {contests.map((contest, index) => {
+            const timeInfo = formatStartTime(contest.start_time);
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className={`${getPlatformColor(
+                          contest.platform
+                        )} text-white text-xs font-semibold px-2 py-1 rounded-full`}
+                      >
+                        {contest.platform}
+                      </span>
+                      {timeInfo.relativeTime && (
+                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                          {timeInfo.relativeTime}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>{formatDuration(contest.duration)}</span>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                      {contest.name}
+                    </h3>
+                    <div className="flex flex-col sm:flex-row gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{timeInfo.dateStr} at {timeInfo.timeStr}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDuration(contest.duration)}</span>
+                      </div>
                     </div>
                   </div>
+                  <a
+                    href={contest.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg transition flex-shrink-0"
+                  >
+                    Register
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
-                <a
-                  href={contest.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg transition flex-shrink-0"
-                >
-                  View
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,366 +1,296 @@
 <div align="center">
-  <h1>🚀 CodeOrbit</h1>
-  <p><strong>Your Competitive Programming Analytics Hub</strong></p>
-  
-  [![Live Demo](https://img.shields.io/badge/demo-live-success?style=for-the-badge)](https://code-orbit-n9aji9mxd-sameer-s-projects-06e61bca.vercel.app)
-  [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
-  [![React](https://img.shields.io/badge/React-19.2-61dafb?style=for-the-badge&logo=react)](https://react.dev/)
-  [![Vite](https://img.shields.io/badge/Vite-7.2-646cff?style=for-the-badge&logo=vite)](https://vitejs.dev/)
-  
-  <p>Track your coding journey across multiple platforms with real-time analytics, streaks, and contest notifications</p>
+
+# 🚀 CodeOrbit
+
+### *Your Ultimate Competitive Programming Analytics Hub*
+
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-4A90E2?style=for-the-badge)](https://code-orbit-3ufbw176d-sameer-s-projects-06e61bca.vercel.app)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![React](https://img.shields.io/badge/React-19.2-61dafb?style=for-the-badge&logo=react&logoColor=white)](https://react.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+
+*Track, analyze, and optimize your coding journey across LeetCode, Codeforces, and CodeChef*
+
+[Features](#-features) • [Demo](#-demo) • [Installation](#-installation) • [Tech Stack](#-tech-stack) • [Contributing](#-contributing)
+
 </div>
 
 ---
 
-## 📋 Table of Contents
+## 📖 About
 
-- [✨ Features](#-features)
-- [🎯 Demo](#-demo)
-- [🏗️ Architecture](#️-architecture)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [🚀 Getting Started](#-getting-started)
-- [📊 How It Works](#-how-it-works)
-- [🔧 Configuration](#-configuration)
-- [📸 Screenshots](#-screenshots)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
+**CodeOrbit** is a comprehensive analytics dashboard for competitive programmers that consolidates your coding statistics from multiple platforms into a single, beautiful interface. Monitor your progress, track streaks, analyze activity patterns, and never miss a contest!
+
+### Why CodeOrbit?
+
+- 📊 **Unified Analytics** - All your coding stats in one place
+- 🔄 **Real-Time Sync** - Automatic data synchronization across platforms
+- 📈 **Visual Insights** - Interactive charts, heatmaps, and trend analysis
+- 🏆 **Contest Tracking** - Never miss an upcoming coding competition
+- 🎯 **Goal Tracking** - Monitor streaks and set personal milestones
+- 🌙 **Modern UI** - Beautiful dark mode with smooth animations
 
 ---
 
 ## ✨ Features
 
-### 🎯 **Multi-Platform Support**
-- **LeetCode** - Track total problems solved with automatic sync
-- **CodeChef** - Monitor your rating and problem-solving progress
-- **Codeforces** - Analyze unique problems across all contests
+### 🎯 Multi-Platform Integration
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <h4>🟡 LeetCode</h4>
+      <p>Track solved problems, submission calendar, and activity patterns</p>
+    </td>
+    <td width="33%" align="center">
+      <h4>🔵 Codeforces</h4>
+      <p>Monitor unique problems solved across contests and practice</p>
+    </td>
+    <td width="33%" align="center">
+      <h4>🟤 CodeChef</h4>
+      <p>Analyze rating progress and problem-solving consistency</p>
+    </td>
+  </tr>
+</table>
 
-### 📊 **Advanced Analytics**
-- **Real-Time Dashboard** - View your coding statistics at a glance
-- **Platform Breakdown** - Individual stats for each coding platform
-- **Activity Heatmap** - Visual representation of your coding patterns
-- **Streak Tracking** - Current and longest streaks per platform
-- **Daily Progress** - Charts showing your daily problem-solving trends
+### 📊 Powerful Analytics
 
-### 🏆 **Contest Tracking**
-- **Upcoming Contests** - Never miss a contest across platforms
-- **Multi-Platform Calendar** - Unified view of all coding competitions
-- **Auto-Refresh** - Real-time updates of contest schedules
+- **📈 Activity Heatmap** - GitHub-style contribution graph showing your coding consistency
+- **📉 Monthly Trends** - Visualize problem-solving patterns over time
+- **🎨 Platform Radar Chart** - Compare your performance across different platforms
+- **🔥 Streak Tracking** - Current and longest streaks for each platform
+- **📊 Problem Type Analysis** - Breakdown of problems by difficulty and category
 
-### 🎨 **Modern UI/UX**
-- **Dark Mode** - Easy on the eyes with automatic theme switching
-- **Responsive Design** - Seamless experience across all devices
-- **Smooth Animations** - Framer Motion powered transitions
-- **Interactive Charts** - Recharts for beautiful data visualization
+### 🏆 Contest Management
+
+- **Upcoming Contests** - Real-time updates from CLIST API
+- **Multi-Platform Calendar** - See all contests in one unified view
+- **Smart Notifications** - Time-until-start countdown for each contest
+- **Quick Links** - Direct access to contest registration pages
+
+### 🎨 User Experience
+
+- **Dark/Light Mode** - Automatic theme switching with smooth transitions
+- **Responsive Design** - Optimized for desktop, tablet, and mobile
+- **Smooth Animations** - Framer Motion powered UI transitions
+- **Interactive Charts** - Recharts visualizations with tooltips and legends
 
 ---
 
-## 🎯 Demo
+## 🎥 Demo
 
-🔗 **Live Application**: [https://code-orbit-n9aji9mxd-sameer-s-projects-06e61bca.vercel.app](https://code-orbit-n9aji9mxd-sameer-s-projects-06e61bca.vercel.app)
+### Dashboard Overview
+The main dashboard provides a comprehensive view of your coding statistics across all platforms.
 
-### Quick Start Guide:
-1. **Sign Up** with your email
-2. **Add Platform URLs** in Settings (e.g., `https://leetcode.com/username`)
-3. **Sync Your Data** from the Dashboard
-4. **View Analytics** and track your progress!
+**Key Metrics:**
+- Total problems solved
+- Active coding days
+- Current streaks per platform
+- Platform-wise breakdown
+- Recent activity trends
 
----
+### Activity Heatmap
+Visual representation of your daily coding activity, similar to GitHub contributions graph.
 
-## 🏗️ Architecture
-
-```mermaid
-graph TB
-    subgraph "Frontend Layer"
-        A[React App] --> B[React Router]
-        A --> C[Zustand State]
-        A --> D[Framer Motion]
-    end
-    
-    subgraph "API Layer"
-        E[Vercel Serverless] --> F[LeetCode API]
-        E --> G[CodeChef Scraper]
-        E --> H[Codeforces API]
-        E --> I[Clist API]
-    end
-    
-    subgraph "Data Layer"
-        J[Supabase Auth] --> K[PostgreSQL]
-        K --> L[profiles table]
-        K --> M[daily_stats table]
-        K --> N[contests_cache table]
-    end
-    
-    A --> E
-    E --> K
-    J --> A
-    
-    style A fill:#61dafb,stroke:#333,stroke-width:2px
-    style E fill:#000,stroke:#333,stroke-width:2px
-    style K fill:#3ecf8e,stroke:#333,stroke-width:2px
-```
-
-### Data Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant API
-    participant Supabase
-    participant Platform
-    
-    User->>Frontend: Login/Signup
-    Frontend->>Supabase: Authenticate
-    Supabase-->>Frontend: Auth Token
-    
-    User->>Frontend: Add Platform URL
-    Frontend->>Supabase: Save Profile
-    
-    User->>Frontend: Click Sync
-    Frontend->>API: Fetch Stats
-    API->>Platform: GET User Data
-    Platform-->>API: Return Data
-    API->>Supabase: Store Stats
-    API-->>Frontend: Success
-    Frontend-->>User: Display Analytics
-```
+### Contest Widget
+Stay updated with upcoming contests from LeetCode, Codeforces, and CodeChef.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### **Frontend**
-| Technology | Version | Purpose |
-|-----------|---------|---------|
-| ![React](https://img.shields.io/badge/React-19.2-61dafb?logo=react) | 19.2.0 | UI Library |
-| ![Vite](https://img.shields.io/badge/Vite-7.2-646cff?logo=vite) | 7.2.2 | Build Tool |
-| ![TailwindCSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8?logo=tailwindcss) | 3.4.18 | Styling |
-| ![React Router](https://img.shields.io/badge/Router-7.9-ca4245?logo=reactrouter) | 7.9.6 | Navigation |
-| ![Zustand](https://img.shields.io/badge/Zustand-5.0-000?logo=react) | 5.0.8 | State Management |
-| ![Framer Motion](https://img.shields.io/badge/Motion-12.23-ff0055) | 12.23.24 | Animations |
-| ![Recharts](https://img.shields.io/badge/Recharts-3.4-22b5bf) | 3.4.1 | Data Visualization |
+### Frontend
+- **React 19.2** - UI framework with latest features
+- **Vite 7.2** - Lightning-fast build tool
+- **Tailwind CSS** - Utility-first styling
+- **Framer Motion** - Smooth animations
+- **Recharts** - Interactive data visualizations
+- **Zustand** - Lightweight state management
+- **React Router** - Client-side routing
 
-### **Backend**
-| Technology | Purpose |
-|-----------|---------|
-| ![Vercel](https://img.shields.io/badge/Vercel-Serverless-000?logo=vercel) | Serverless Functions |
-| ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?logo=supabase) | Database & Auth |
-| ![Axios](https://img.shields.io/badge/Axios-1.13-5a29e4?logo=axios) | HTTP Client |
-| ![Cheerio](https://img.shields.io/badge/Cheerio-1.1-e88c00) | Web Scraping |
+### Backend & APIs
+- **Supabase** - PostgreSQL database & authentication
+- **Vercel Serverless Functions** - API routes
+- **Axios** - HTTP client for API requests
+- **Cheerio** - Web scraping for CodeChef data
 
-### **External APIs**
-- **LeetCode GraphQL API** - Problem stats
-- **Codeforces API** - Contest and problem data
-- **CodeChef Web Scraping** - User profile stats
-- **Clist API** - Unified contest calendar
+### External APIs
+- **LeetCode GraphQL API** - User statistics and submission calendar
+- **Codeforces API** - Submission history and contest data
+- **CLIST API** - Contest schedules across platforms
+- **CodeChef Scraping** - User profile data
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Installation
 
 ### Prerequisites
-
 - Node.js 18+ and npm
-- Supabase account ([supabase.com](https://supabase.com))
-- Vercel account for deployment ([vercel.com](https://vercel.com))
+- Supabase account
+- CLIST API token (optional, for contest data)
 
-### Installation
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Sameer6305/CodeOrbit.git
+cd CodeOrbit
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Sameer6305/CodeOrbit.git
-   cd CodeOrbit
-   ```
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+### 3. Set Up Supabase
 
-3. **Set up environment variables**
-   
-   Create a `.env` file in the root directory:
-   ```env
-   # Supabase Configuration
-   VITE_SUPABASE_URL=your_supabase_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_SERVICE_KEY=your_supabase_service_role_key
-   
-   # Clist API (Optional - for contests)
-   CLIST_API_TOKEN=your_clist_api_token
-   ```
+#### Create a Supabase Project
+1. Go to [supabase.com](https://supabase.com)
+2. Create a new project
+3. Copy your project URL and anon key
 
-4. **Set up Supabase database**
-   
-   Run the SQL schema in your Supabase SQL Editor:
-   ```bash
-   # Copy contents from supabase/schema.sql
-   # Paste and run in Supabase Dashboard → SQL Editor
-   ```
+#### Run Database Schema
+1. Open Supabase SQL Editor
+2. Copy and paste the contents of `supabase/schema.sql`
+3. Click "RUN" to create tables and policies
 
-5. **Run development server**
-   ```bash
-   npm run dev
-   ```
+### 4. Configure Environment Variables
+Create a `.env` file in the root directory:
 
-6. **Open your browser**
-   ```
-   http://localhost:5173
-   ```
+```env
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-### Deployment
+# Server-side keys (for API routes)
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_KEY=your_supabase_service_role_key
 
-#### Deploy to Vercel
+# CLIST API (optional - for contest data)
+CLIST_API_TOKEN=your_clist_api_token
+```
 
-1. **Install Vercel CLI**
-   ```bash
-   npm i -g vercel
-   ```
+**Get CLIST API Token:**
+1. Register at [clist.by](https://clist.by/)
+2. Go to Settings → API
+3. Generate an API key
 
-2. **Deploy**
-   ```bash
-   vercel --prod
-   ```
+### 5. Run Development Server
+```bash
+npm run dev
+```
 
-3. **Set environment variables** in Vercel Dashboard → Settings → Environment Variables
+Visit `http://localhost:5173` to see your app!
+
+### 6. Deploy to Vercel
+
+#### Install Vercel CLI
+```bash
+npm install -g vercel
+```
+
+#### Deploy
+```bash
+vercel --prod
+```
+
+Add environment variables in Vercel dashboard under Settings → Environment Variables.
 
 ---
 
-## 📊 How It Works
+## 📖 Usage Guide
 
-### 1. **User Authentication**
-- Powered by Supabase Auth
-- Email/password authentication
-- Row Level Security (RLS) ensures data privacy
+### 1. Create an Account
+- Sign up using email and password
+- Or use the demo account (if available)
 
-### 2. **Profile Management**
-- Users add platform URLs (LeetCode, CodeChef, Codeforces)
-- URLs are parsed to extract usernames
-- Stored securely in `profiles` table
+### 2. Add Platform Handles
+Go to **Settings** and add your usernames:
+- **LeetCode Username** (e.g., `yourname`)
+- **Codeforces Handle** (e.g., `yourhandle`)
+- **CodeChef Handle** (e.g., `yourhandle`)
 
-### 3. **Data Synchronization**
+### 3. Sync Your Data
+- Navigate to the **Dashboard**
+- Click "Sync All Platforms" button
+- Wait for data to be fetched (3-5 seconds)
+- Refresh the page to see your statistics
 
-```javascript
-// Sync Flow
-User clicks "Sync" 
-  → Frontend calls API routes
-  → APIs fetch from platforms
-  → Data stored as CUMULATIVE totals
-  → Frontend calculates DAILY CHANGES
-  → Display analytics with streaks
+### 4. Explore Analytics
+- **Dashboard** - Overview of all statistics
+- **Analytics** - Detailed charts and trends
+- **Contests** - Upcoming competitions
+- **Benchmark** - Compare with other users (coming soon)
+
+---
+
+## 📁 Project Structure
+
 ```
-
-### 4. **Stats Calculation**
-
-**Storage Strategy:**
-- Store **cumulative totals** in database (e.g., 113 total LeetCode problems)
-- Calculate **daily changes** on-the-fly (e.g., solved 5 today = 113 - 108)
-
-**Streak Detection:**
-- Activity detected when count increases
-- Current streak: consecutive days with activity from today backwards
-- Longest streak: maximum consecutive active days in history
-
-### 5. **Contest Aggregation**
-- Fetches from Clist API (unified source)
-- Caches contests in `contests_cache` table
-- Auto-refresh every 6 hours
-- Displays upcoming contests across all platforms
+codeorbit/
+├── api/                      # Vercel serverless functions
+│   ├── badges.js            # Badge counting API
+│   ├── codechef.js          # CodeChef data sync
+│   ├── codeforces.js        # Codeforces data sync
+│   ├── contests.js          # Contest fetching
+│   ├── leetcode.js          # LeetCode data sync
+│   ├── problem-types.js     # Problem categorization
+│   ├── submission-calendar.js # Activity calendar
+│   └── utils/
+│       └── streakCalculator.js # Streak computation
+├── src/
+│   ├── components/          # React components
+│   │   ├── ActivityChart.jsx
+│   │   ├── ContestWidget.jsx
+│   │   ├── HeatmapChart.jsx
+│   │   ├── Layout.jsx
+│   │   ├── Navbar.jsx
+│   │   ├── PlatformRadarChart.jsx
+│   │   └── StatCard.jsx
+│   ├── pages/               # Route pages
+│   │   ├── Analytics.jsx
+│   │   ├── Contests.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── Login.jsx
+│   │   ├── Settings.jsx
+│   │   └── Signup.jsx
+│   ├── store/               # Zustand state management
+│   │   ├── auth.js
+│   │   ├── profile.js
+│   │   ├── stats.js
+│   │   └── theme.js
+│   ├── utils/               # Helper functions
+│   │   ├── platformHelpers.js
+│   │   ├── platformParser.js
+│   │   └── streakCalculator.js
+│   ├── lib/
+│   │   └── supabase.js      # Supabase client
+│   ├── App.jsx              # Main app component
+│   └── main.jsx             # Entry point
+├── supabase/
+│   └── schema.sql           # Database schema
+├── public/                  # Static assets
+├── .env                     # Environment variables
+├── package.json             # Dependencies
+├── vite.config.js           # Vite configuration
+└── vercel.json              # Vercel deployment config
+```
 
 ---
 
 ## 🔧 Configuration
 
 ### Database Schema
+The app uses PostgreSQL with the following tables:
 
-```sql
--- profiles: User platform handles
-CREATE TABLE profiles (
-  id UUID PRIMARY KEY,
-  email TEXT,
-  leetcode_username TEXT,
-  codechef_handle TEXT,
-  codeforces_handle TEXT
-);
+- **profiles** - User profile information and platform handles
+- **daily_stats** - Daily problem-solving statistics per platform
+- **contests_cache** - Cached contest information
 
--- daily_stats: Cumulative problem counts
-CREATE TABLE daily_stats (
-  id UUID PRIMARY KEY,
-  user_id UUID REFERENCES profiles(id),
-  platform TEXT,
-  solved_count INTEGER,
-  date DATE,
-  UNIQUE(user_id, date, platform)
-);
+See `supabase/schema.sql` for complete schema definition.
 
--- contests_cache: Upcoming contests
-CREATE TABLE contests_cache (
-  id UUID PRIMARY KEY,
-  title TEXT,
-  platform TEXT,
-  start_time TIMESTAMPTZ,
-  duration INTEGER,
-  url TEXT
-);
-```
-
-### API Routes
-
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/api/leetcode` | POST | Fetch LeetCode stats |
-| `/api/codechef` | POST | Scrape CodeChef profile |
-| `/api/codeforces` | POST | Get Codeforces problems |
-| `/api/contests` | GET | List upcoming contests |
-
----
-
-## 📸 Screenshots
-
-### Dashboard
-![Dashboard](https://via.placeholder.com/800x400/1e293b/ffffff?text=Dashboard+Screenshot)
-*Real-time overview of coding statistics with platform breakdown*
-
-### Analytics
-![Analytics](https://via.placeholder.com/800x400/1e293b/ffffff?text=Analytics+Screenshot)
-*Detailed charts and heatmaps showing coding patterns*
-
-### Contests
-![Contests](https://via.placeholder.com/800x400/1e293b/ffffff?text=Contests+Screenshot)
-*Upcoming contests across all platforms*
-
-### Settings
-![Settings](https://via.placeholder.com/800x400/1e293b/ffffff?text=Settings+Screenshot)
-*Platform configuration and profile management*
-
----
-
-## 🎨 Key Features Breakdown
-
-### 📈 Analytics Engine
-
-```mermaid
-graph LR
-    A[Raw Data] --> B[Group by Platform]
-    B --> C[Sort by Date]
-    C --> D[Calculate Changes]
-    D --> E[Detect Activity]
-    E --> F[Compute Streaks]
-    F --> G[Display Stats]
-    
-    style A fill:#3b82f6
-    style G fill:#10b981
-```
-
-### 🔄 Sync Process
-
-1. **User Initiates Sync** → Click "Sync All Platforms"
-2. **API Calls** → Parallel requests to platform APIs
-3. **Data Processing** → Extract relevant statistics
-4. **Database Update** → Upsert with conflict resolution
-5. **Frontend Update** → Fetch latest stats and recalculate
-6. **UI Refresh** → Display updated analytics with animations
+### API Rate Limits
+- **LeetCode API**: No official limit, use responsibly
+- **Codeforces API**: 5 requests per 2 seconds
+- **CLIST API**: 10,000 requests per day (free tier)
+- **CodeChef**: Web scraping, use with delays
 
 ---
 
@@ -368,49 +298,45 @@ graph LR
 
 Contributions are welcome! Here's how you can help:
 
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Commit your changes**
-   ```bash
-   git commit -m 'Add amazing feature'
-   ```
-4. **Push to the branch**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-5. **Open a Pull Request**
+### Reporting Bugs
+Open an issue with:
+- Bug description
+- Steps to reproduce
+- Expected vs actual behavior
+- Screenshots (if applicable)
+
+### Suggesting Features
+Open an issue with:
+- Feature description
+- Use case
+- Mockups (if applicable)
+
+### Pull Requests
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Commit changes: `git commit -m 'Add feature'`
+4. Push to branch: `git push origin feature-name`
+5. Open a pull request
 
 ### Development Guidelines
-
 - Follow existing code style
-- Add comments for complex logic
-- Update README for new features
+- Write meaningful commit messages
 - Test thoroughly before submitting
+- Update documentation as needed
 
 ---
 
-## 🐛 Known Issues & Roadmap
+## 🐛 Known Issues
 
-### Current Limitations
-- CodeChef scraping may fail if profile is private
-- Contest sync limited to Clist API availability
-- Historical data requires manual backfilling
+- CodeChef activity shows distributed data for single-record users
+- Contest API may occasionally timeout
+- Real-time sync can take 3-5 seconds per platform
 
-### Future Enhancements
-- [ ] Add HackerRank support
-- [ ] Export analytics as PDF
-- [ ] Email notifications for contests
-- [ ] Friend comparison feature
-- [ ] Mobile app (React Native)
-- [ ] AI-powered insights
-- [ ] Custom goal setting
+See [Issues](https://github.com/Sameer6305/CodeOrbit/issues) for full list.
 
 ---
 
-## 📄 License
+## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
@@ -418,39 +344,27 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [LeetCode](https://leetcode.com) for the problem-solving platform
-- [CodeChef](https://codechef.com) for competitive programming contests
-- [Codeforces](https://codeforces.com) for the API and community
-- [Clist](https://clist.by) for unified contest calendar
-- [Supabase](https://supabase.com) for backend infrastructure
-- [Vercel](https://vercel.com) for seamless deployment
+- **LeetCode** for their GraphQL API
+- **Codeforces** for their public API
+- **CodeChef** for maintaining public profiles
+- **CLIST** for contest aggregation API
+- **Supabase** for backend infrastructure
+- **Vercel** for hosting and serverless functions
 
 ---
 
-## 💬 Support
+## 📧 Contact
 
-If you have any questions or run into issues:
-
-- 📧 Email: support@codeorbit.dev
-- 🐛 Issues: [GitHub Issues](https://github.com/Sameer6305/CodeOrbit/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/Sameer6305/CodeOrbit/discussions)
-
----
-
-## ⭐ Show Your Support
-
-If you find CodeOrbit helpful, please consider:
-- ⭐ Starring the repository
-- 🐛 Reporting bugs
-- 💡 Suggesting new features
-- 🤝 Contributing to the code
+**Sameer Kadam**
+- GitHub: [@Sameer6305](https://github.com/Sameer6305)
+- Project Link: [https://github.com/Sameer6305/CodeOrbit](https://github.com/Sameer6305/CodeOrbit)
 
 ---
 
 <div align="center">
-  <p>Made with ❤️ by developers, for developers</p>
-  <p>© 2025 CodeOrbit. All rights reserved.</p>
-  
-  [![GitHub stars](https://img.shields.io/github/stars/Sameer6305/CodeOrbit?style=social)](https://github.com/Sameer6305/CodeOrbit)
-  [![GitHub forks](https://img.shields.io/github/forks/Sameer6305/CodeOrbit?style=social)](https://github.com/Sameer6305/CodeOrbit/fork)
+
+### ⭐ Star this repo if you find it helpful!
+
+Made with ❤️ by [Sameer Kadam](https://github.com/Sameer6305)
+
 </div>

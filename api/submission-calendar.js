@@ -88,19 +88,28 @@ export default async function handler(req, res) {
         if (error) {
           console.error('CodeChef daily_stats fetch error:', error.message);
         } else if (dailyStats && dailyStats.length > 0) {
+          console.log(`CodeChef: Found ${dailyStats.length} daily_stats records`);
+          
           const dailySubmissions = {};
-          let prevCount = 0;
-
+          
+          // Calculate daily changes (skip first entry to avoid showing cumulative spike)
           dailyStats.forEach((stat, index) => {
-            const change = index === 0 ? stat.solved_count : stat.solved_count - prevCount;
+            if (index === 0) {
+              // Skip first entry - we don't know the previous value
+              // This prevents showing the entire history as a spike on first sync day
+              return;
+            }
+            
+            const prevStat = dailyStats[index - 1];
+            const change = stat.solved_count - prevStat.solved_count;
+            
             if (change > 0) {
               dailySubmissions[stat.date] = change;
             }
-            prevCount = stat.solved_count;
           });
-
+          
           result.codechef = dailySubmissions;
-          console.log(`CodeChef calendar: ${Object.keys(dailySubmissions).length} active days`);
+          console.log(`CodeChef calendar: ${Object.keys(dailySubmissions).length} active days (first entry skipped to avoid spike)`);
         }
       } catch (error) {
         console.error('CodeChef calendar fetch error:', error.message);

@@ -21,6 +21,58 @@
 
 **CodeOrbit** is a comprehensive analytics dashboard for competitive programmers that consolidates your coding statistics from multiple platforms into a single, beautiful interface. Monitor your progress, track streaks, analyze activity patterns, and never miss a contest!
 
+### 🏗️ System Architecture
+
+```mermaid
+graph TB
+    User[👤 User] --> Frontend[⚛️ React Frontend]
+    Frontend --> API[🔌 API Layer]
+    
+    API --> Router{Route Handler}
+    
+    Router --> LeetCode[LeetCode API]
+    Router --> Codeforces[Codeforces API]
+    Router --> CodeChef[CodeChef Scraper]
+    Router --> CLIST[CLIST API]
+    
+    LeetCode --> Parser[📊 Data Parser]
+    Codeforces --> Parser
+    CodeChef --> Parser
+    CLIST --> Parser
+    
+    Parser --> Supabase[(🗄️ Supabase DB)]
+    Supabase --> Frontend
+    
+    Frontend --> Charts[📈 Analytics Display]
+```
+
+### 🔄 Data Flow Sequence
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant API
+    participant Supabase
+    participant Platforms
+    
+    User->>Frontend: Login/Signup
+    Frontend->>Supabase: Authenticate
+    Supabase-->>Frontend: Auth Token
+    
+    User->>Frontend: Add Platform URLs
+    Frontend->>Supabase: Save Profile
+    
+    User->>Frontend: Click Sync
+    Frontend->>API: Fetch Stats
+    API->>Platforms: GET User Data
+    Platforms-->>API: Return Data
+    API->>Supabase: Store Stats
+    Supabase-->>API: Success
+    API-->>Frontend: Success
+    Frontend->>Frontend: Display Analytics
+```
+
 ### Why CodeOrbit?
 
 - 📊 **Unified Analytics** - All your coding stats in one place
@@ -94,9 +146,65 @@ Visual representation of your daily coding activity, similar to GitHub contribut
 ### Contest Widget
 Stay updated with upcoming contests from LeetCode, Codeforces, and CodeChef.
 
+### 📊 Data Processing Pipeline
+
+```mermaid
+graph LR
+    A[🔄 Sync Request] --> B{Platform Router}
+    
+    B -->|LeetCode| C[GraphQL Query]
+    B -->|Codeforces| D[REST API Call]
+    B -->|CodeChef| E[Web Scraping]
+    
+    C --> F[Parse Response]
+    D --> F
+    E --> F
+    
+    F --> G[Calculate Stats]
+    G --> H[Compute Streaks]
+    H --> I[(Store in DB)]
+    
+    I --> J[Update Cache]
+    J --> K[Return to Frontend]
+    K --> L[📈 Display Charts]
+```
+
 ---
 
 ## 🛠️ Tech Stack
+
+```mermaid
+graph TB
+    subgraph Frontend["🎨 Frontend Layer"]
+        React[React 19.2]
+        Vite[Vite 7.2]
+        Tailwind[Tailwind CSS]
+        Framer[Framer Motion]
+        Recharts[Recharts]
+        Zustand[Zustand]
+        Router[React Router]
+    end
+    
+    subgraph Backend["⚙️ Backend Layer"]
+        Supabase[(Supabase PostgreSQL)]
+        Vercel[Vercel Serverless]
+        Auth[Auth System]
+    end
+    
+    subgraph APIs["🔌 External APIs"]
+        LC[LeetCode GraphQL]
+        CF[Codeforces REST]
+        CC[CodeChef Scraper]
+        CLIST[CLIST API]
+    end
+    
+    Frontend --> Backend
+    Backend --> APIs
+    
+    style Frontend fill:#61dafb20
+    style Backend fill:#3ecf8e20
+    style APIs fill:#ff6b6b20
+```
 
 ### Frontend
 - **React 19.2** - UI framework with latest features
@@ -278,6 +386,52 @@ codeorbit/
 ## 🔧 Configuration
 
 ### Database Schema
+
+```mermaid
+erDiagram
+    USERS ||--|| PROFILES : has
+    USERS ||--o{ DAILY_STATS : tracks
+    CONTESTS_CACHE }o--|| PLATFORMS : from
+    
+    USERS {
+        uuid id PK
+        string email
+        timestamp created_at
+    }
+    
+    PROFILES {
+        uuid id PK
+        string email
+        string username
+        string codeforces_handle
+        string leetcode_username
+        string codechef_handle
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    DAILY_STATS {
+        uuid id PK
+        uuid user_id FK
+        date date
+        string platform
+        int solved_count
+        int streak
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    CONTESTS_CACHE {
+        uuid id PK
+        string platform
+        string contest_name
+        timestamp start_time
+        int duration
+        string link
+        timestamp created_at
+    }
+```
+
 The app uses PostgreSQL with the following tables:
 
 - **profiles** - User profile information and platform handles

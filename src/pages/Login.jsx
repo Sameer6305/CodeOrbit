@@ -1,38 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
-import { Mail, Lock, Chrome } from "lucide-react";
+import { pingDatabase } from "../lib/supabase";
+import {
+  subscribeDbHealth,
+  warmupDatabase,
+  resetDbHealth,
+} from "../lib/dbHealthMonitor";
+import { Mail, Lock, Chrome, Wifi, WifiOff, RefreshCw } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [dbStatus, setDbStatus] = useState("idle");
 
   const { login, loginWithGoogle } = useAuthStore();
   const navigate = useNavigate();
+
+  // Subscribe to database health monitor for live connection status
+  useEffect(() => {
+    const unsubscribe = subscribeDbHealth(setDbStatus);
+    return unsubscribe;
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const { data, error } = await login(email, password);
-    if (error) {
-      setError(error.message);
+    try {
+      const { data, error: loginError } = await login(email, password);
+      if (loginError) {
+        setError(loginError.message);
+        return;
+      }
+      if (data?.user) {
+        await useAuthStore.getState().loadUser();
+        navigate("/dashboard");
+      }
+    } catch (networkErr) {
+      console.error("[CodeOrbit] Login network error:", networkErr);
+      setError(
+        networkErr.message.includes("fetch")
+          ? "Unable to reach the server. The database may be waking up — please wait a moment and try again."
+          : networkErr.message
+      );
+    } finally {
       setLoading(false);
-    } else if (data?.user) {
-      // Reload user in auth store
-      await useAuthStore.getState().loadUser();
-      navigate("/dashboard");
     }
   };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const { error } = await loginWithGoogle();
-    if (error) {
-      setError(error.message);
+    try {
+      const { error: oauthError } = await loginWithGoogle();
+      if (oauthError) {
+        setError(oauthError.message);
+      }
+    } catch (networkErr) {
+      setError("Unable to reach the server. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
@@ -48,6 +77,40 @@ export default function Login() {
             Track your coding journey across platforms
           </p>
         </div>
+
+        {/* ── Database connection status banner ─────────────────────── */}
+        {dbStatus === "warming" && (
+          <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-sm px-4 py-2.5 rounded-lg mb-4">
+            <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+            <span>Connecting to database&hellip; you can still fill in the form.</span>
+          </div>
+        )}
+
+        {dbStatus === "open" && (
+          <div className="flex items-center justify-between gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 text-sm px-4 py-2.5 rounded-lg mb-4">
+            <div className="flex items-center gap-2">
+              <WifiOff className="w-4 h-4 shrink-0" />
+              <span>Database is slow to respond. Sign-in will auto-retry.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                resetDbHealth();
+                warmupDatabase(pingDatabase).catch(() => {});
+              }}
+              className="font-semibold underline underline-offset-2 hover:no-underline shrink-0"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {dbStatus === "ready" && (
+          <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 text-sm px-4 py-2.5 rounded-lg mb-4">
+            <Wifi className="w-4 h-4 shrink-0" />
+            <span>Database connected.</span>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-4">
@@ -95,7 +158,11 @@ export default function Login() {
             disabled={loading}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading
+              ? dbStatus === "warming"
+                ? "Waking database & signing in…"
+                : "Signing in…"
+              : "Sign In"}
           </button>
         </form>
 

@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuthStore } from "./store/auth";
 import { useThemeStore } from "./store/theme";
+import { pingDatabase } from "./lib/supabase";
+import { warmupDatabase } from "./lib/dbHealthMonitor";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
@@ -16,6 +18,12 @@ export default function App() {
   const setTheme = useThemeStore((s) => s.setTheme);
 
   useEffect(() => {
+    // Proactively warm up the database connection so it's ready before
+    // the user submits the login form (handles Supabase free-tier cold starts).
+    warmupDatabase(pingDatabase).catch(() => {
+      // Errors are captured inside the monitor; no uncaught rejection here.
+    });
+
     // Load user on app start
     loadUser();
 

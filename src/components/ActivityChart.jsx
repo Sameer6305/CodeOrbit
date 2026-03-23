@@ -40,7 +40,15 @@ export default function ActivityChart({ data }) {
         if (profile.codechef_handle) params.append('cc_username', profile.codechef_handle);
         
         if (params.toString()) {
-          const response = await fetch(`/api/submission-calendar?${params.toString()}`);
+          // Avoid stale cached responses after sync/deploy updates.
+          params.append('t', Date.now().toString());
+          const response = await fetch(`/api/submission-calendar?${params.toString()}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              Pragma: 'no-cache'
+            }
+          });
           if (response.ok) {
             const data = await response.json();
             console.log('📊 Submission calendar data:', data);

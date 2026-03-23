@@ -85,8 +85,16 @@ export default async function handler(req, res) {
     // If we got contests, cache them
     if (allContests.length > 0) {
       try {
+        const rowsForCache = allContests.map((contest) => ({
+          contest_name: contest.name,
+          platform: contest.platform,
+          start_time: contest.start_time,
+          duration: contest.duration,
+          link: contest.url,
+        }));
+
         await supabase.from("contests_cache").delete().neq('id', 0); // Clear old cache
-        await supabase.from("contests_cache").insert(allContests);
+        await supabase.from("contests_cache").insert(rowsForCache);
         console.log('✓ Cached contests to database');
       } catch (dbError) {
         console.error("Database cache error:", dbError.message);
@@ -103,7 +111,16 @@ export default async function handler(req, res) {
         
         if (!cacheError && cachedContests && cachedContests.length > 0) {
           // Filter to only future contests
-          const futureContests = cachedContests.filter(c => new Date(c.start_time) > now);
+          const futureContests = cachedContests
+            .filter(c => new Date(c.start_time) > now)
+            .map((c) => ({
+              name: c.contest_name,
+              platform: c.platform,
+              start_time: c.start_time,
+              duration: c.duration,
+              url: c.link,
+            }));
+
           if (futureContests.length > 0) {
             console.log('✓ Using cached contests:', futureContests.length);
             return res.json({ contests: futureContests });

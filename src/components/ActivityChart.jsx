@@ -184,17 +184,24 @@ export default function ActivityChart({ data }) {
       const monthKey = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}`;
       const monthData = monthMap[monthKey] || { leetcode: 0, codeforces: 0, codechef: 0 };
       
-      months.push({
+      const monthEntry = {
         month: iterDate.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
         fullDate: new Date(iterDate),
         LeetCode: toSafeCount(monthData.leetcode),
         Codeforces: toSafeCount(monthData.codeforces),
         CodeChef: toSafeCount(monthData.codechef),
-      });
+      };
       
+      const total = monthEntry.LeetCode + monthEntry.Codeforces + monthEntry.CodeChef;
+      if (total > 0) {
+        console.log(`   ${monthEntry.month}: LC=${monthEntry.LeetCode}, CF=${monthEntry.Codeforces}, CC=${monthEntry.CodeChef}, TOTAL=${total}`);
+      }
+      
+      months.push(monthEntry);
       iterDate.setMonth(iterDate.getMonth() + 1);
     }
     
+    console.log(`📊 Chart data finalized: ${months.length} months, ${months.filter(m => (m.LeetCode + m.Codeforces + m.CodeChef) > 0).length} have submissions`);
     return months;
   }
   

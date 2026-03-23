@@ -41,6 +41,8 @@ async function fetchCodeChefAcceptedCalendar(handle) {
   const pagesToFetch = Math.min(maxPage, 20);
   const pagePayloads = [firstPageResp.data];
 
+  console.log(`🔍 CodeChef: ${pagesToFetch} pages to fetch`);
+
   for (let page = 2; page <= pagesToFetch; page++) {
     try {
       const resp = await axios.get(
@@ -55,31 +57,46 @@ async function fetchCodeChefAcceptedCalendar(handle) {
       );
       pagePayloads.push(resp.data);
     } catch (error) {
-      console.warn(`CodeChef recent submissions page ${page} failed:`, error.message);
+      console.warn(`⚠️  CodeChef page ${page} error:`, error.message);
       break;
     }
   }
 
-  for (const payload of pagePayloads) {
+  let totalAccepted = 0;
+  for (let pid = 0; pid < pagePayloads.length; pid++) {
+    const payload = pagePayloads[pid];
     const content = payload?.content;
-    if (!content || typeof content !== 'string') continue;
+    if (!content || typeof content !== 'string') {
+      console.log(`⚠️  Page ${pid}: no content`);
+      continue;
+    }
 
     const $ = cheerio.load(content);
-    $('tr').each((_, row) => {
+    const rows = $('tr');
+    console.log(`🔍 Page ${pid}: parsing ${rows.length} rows`);
+    
+    let pageAccepted = 0;
+    $('tr').each((idx, row) => {
       const rowText = $(row).text().replace(/\s+/g, ' ').trim();
       if (!rowText) return;
 
-      // CodeChef marks fully accepted rows with score (100)
       const isAccepted = /\(100\)/.test(rowText);
       if (!isAccepted) return;
 
+      pageAccepted++;
       const date = normalizeCodeChefDate(rowText);
-      if (!date) return;
+      if (!date) {
+        if (pageAccepted <= 2) console.log(`⚠️  (100) found but date parse failed: ${rowText.substring(0, 60)}`);
+        return;
+      }
 
       allAcceptedByDate[date] = (allAcceptedByDate[date] || 0) + 1;
+      totalAccepted++;
     });
-  }
+    
+    console.log(`   Page ${pid}: ${pageAccepted} accepted rows`);\n  }
 
+  console.log(`✅ CodeChef scrape: ${totalAccepted} submissions across ${Object.keys(allAcceptedByDate).length} dates`);
   return allAcceptedByDate;
 }
 
@@ -157,10 +174,13 @@ export default async function handler(req, res) {
     if (cc_username && user_id) {
       try {
         // Prefer real accepted-submission history from CodeChef recent submissions endpoint.
+        console.log(`🔍 CodeChef: Starting scrape for handle "${cc_username}"`);
         let dailySubmissions = await fetchCodeChefAcceptedCalendar(cc_username);
+        console.log(`🔍 CodeChef: Scrape returned ${Object.keys(dailySubmissions || {}).length} dates`);
 
         // Fallback to daily_stats deltas only when scrape returns no usable rows.
         if (!dailySubmissions || Object.keys(dailySubmissions).length === 0) {
+          console.log(`⚠️  CodeChef scrape empty, falling back to daily_stats deltas...`);
           const { data: dailyStats, error } = await supabase
             .from('daily_stats')
             .select('date, solved_count')
@@ -169,28 +189,46 @@ export default async function handler(req, res) {
             .order('date', { ascending: true });
 
           if (error) {
-            console.error('CodeChef daily_stats fetch error:', error.message);
-          } else if (dailyStats && dailyStats.length > 1) {
+            console.error('❌ CodeChef daily_stats fetch error:', error.message);
+          } else if (dailyStats && dailyStats.length) {
+            console.log(`📊 CodeChef daily_stats: found ${dailyStats.length} snapshots`);
             dailySubmissions = {};
 
-            // Real delta-based changes from snapshots; no synthetic monthly distribution.
-            dailyStats.forEach((stat, index) => {
-              if (index === 0) return;
-
-              const prevStat = dailyStats[index - 1];
-              const change = toSafeNumber(stat.solved_count) - toSafeNumber(prevStat.solved_count);
-
-              if (change > 0) {
-                dailySubmissions[stat.date] = change;
+            if (dailyStats.length === 1) {
+              // Single entry: use it as-is with today's date (assume all solved today)
+              const stat = dailyStats[0];
+              const count = toSafeNumber(stat.solved_count);
+              if (count > 0) {
+                dailySubmissions[stat.date] = count;
               }
-            });
+              console.log(`   Single snapshot: date=${stat.date}, solved=${count}`);
+            } else {
+              // Multiple entries: calculate real deltas
+              dailyStats.forEach((stat, index) => {
+                if (index === 0) {
+                  // First entry: use as baseline, no submissions recorded
+                  console.log(`   [0] (baseline) date=${stat.date}, solved=${stat.solved_count}`);
+                  return;
+                }
+
+                const prevStat = dailyStats[index - 1];
+                const change = toSafeNumber(stat.solved_count) - toSafeNumber(prevStat.solved_count);
+
+                if (change > 0) {
+                  dailySubmissions[stat.date] = change;
+                  console.log(`   [${index}] date=${stat.date}, change=${change}`);
+                } else {
+                  console.log(`   [${index}] date=${stat.date}, change=${change} (negative/zero, skipped)`);
+                }
+              });
+            }
           }
         }
 
         result.codechef = dailySubmissions || {};
-        console.log(`CodeChef calendar: ${Object.keys(result.codechef).length} active days`);
+        console.log(`✅ CodeChef calendar final: ${Object.keys(result.codechef).length} active days`);
       } catch (error) {
-        console.error('CodeChef calendar fetch error:', error.message);
+        console.error('❌ CodeChef calendar fetch error:', error.message);
       }
     }
 

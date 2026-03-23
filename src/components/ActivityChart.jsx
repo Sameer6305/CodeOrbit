@@ -62,6 +62,11 @@ export default function ActivityChart({ data }) {
     
     fetchSubmissionCalendar();
   }, [profile, user]);
+
+  function toSafeCount(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+  }
   
   // Generate chart data based on selected time range using submission calendar
   function generateChartData() {
@@ -132,7 +137,7 @@ export default function ActivityChart({ data }) {
         if (!monthMap[monthKey]) {
           monthMap[monthKey] = { leetcode: 0, codeforces: 0, codechef: 0 };
         }
-        monthMap[monthKey].leetcode += count;
+        monthMap[monthKey].leetcode += toSafeCount(count);
       }
     });
     
@@ -144,7 +149,7 @@ export default function ActivityChart({ data }) {
         if (!monthMap[monthKey]) {
           monthMap[monthKey] = { leetcode: 0, codeforces: 0, codechef: 0 };
         }
-        monthMap[monthKey].codeforces += count;
+        monthMap[monthKey].codeforces += toSafeCount(count);
       }
     });
     
@@ -156,7 +161,7 @@ export default function ActivityChart({ data }) {
         if (!monthMap[monthKey]) {
           monthMap[monthKey] = { leetcode: 0, codeforces: 0, codechef: 0 };
         }
-        monthMap[monthKey].codechef += count;
+        monthMap[monthKey].codechef += toSafeCount(count);
       }
     });
     
@@ -174,9 +179,9 @@ export default function ActivityChart({ data }) {
       months.push({
         month: iterDate.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
         fullDate: new Date(iterDate),
-        LeetCode: monthData.leetcode,
-        Codeforces: monthData.codeforces,
-        CodeChef: monthData.codechef,
+        LeetCode: toSafeCount(monthData.leetcode),
+        Codeforces: toSafeCount(monthData.codeforces),
+        CodeChef: toSafeCount(monthData.codechef),
       });
       
       iterDate.setMonth(iterDate.getMonth() + 1);

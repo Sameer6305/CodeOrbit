@@ -1,7 +1,87 @@
 import axios from "axios";
+import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+
+function toSafeNumber(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function normalizeCodeChefDate(raw) {
+  const match = String(raw || "").match(/(\d{2})\/(\d{2})\/(\d{2,4})/);
+  if (!match) return null;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const yearPart = Number(match[3]);
+  const year = yearPart < 100 ? 2000 + yearPart : yearPart;
+
+  if (!day || !month || !year) return null;
+  const d = new Date(Date.UTC(year, month - 1, day));
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().split('T')[0];
+}
+
+async function fetchCodeChefAcceptedCalendar(handle) {
+  const allAcceptedByDate = {};
+
+  const firstPageResp = await axios.get(`https://www.codechef.com/recent/user?user_handle=${encodeURIComponent(handle)}`,
+    {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      timeout: 15000
+    }
+  );
+
+  const maxPage = Math.max(1, toSafeNumber(firstPageResp.data?.max_page) || 1);
+  const pagesToFetch = Math.min(maxPage, 20);
+  const pagePayloads = [firstPageResp.data];
+
+  for (let page = 2; page <= pagesToFetch; page++) {
+    try {
+      const resp = await axios.get(
+        `https://www.codechef.com/recent/user?page=${page}&user_handle=${encodeURIComponent(handle)}`,
+        {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "X-Requested-With": "XMLHttpRequest"
+          },
+          timeout: 15000
+        }
+      );
+      pagePayloads.push(resp.data);
+    } catch (error) {
+      console.warn(`CodeChef recent submissions page ${page} failed:`, error.message);
+      break;
+    }
+  }
+
+  for (const payload of pagePayloads) {
+    const content = payload?.content;
+    if (!content || typeof content !== 'string') continue;
+
+    const $ = cheerio.load(content);
+    $('tr').each((_, row) => {
+      const rowText = $(row).text().replace(/\s+/g, ' ').trim();
+      if (!rowText) return;
+
+      // CodeChef marks fully accepted rows with score (100)
+      const isAccepted = /\(100\)/.test(rowText);
+      if (!isAccepted) return;
+
+      const date = normalizeCodeChefDate(rowText);
+      if (!date) return;
+
+      allAcceptedByDate[date] = (allAcceptedByDate[date] || 0) + 1;
+    });
+  }
+
+  return allAcceptedByDate;
+}
 
 export default async function handler(req, res) {
   try {
@@ -76,64 +156,39 @@ export default async function handler(req, res) {
     // Fetch CodeChef submission history from daily_stats
     if (cc_username && user_id) {
       try {
-        // CodeChef doesn't have a public API for submission calendar
-        // We'll derive it from daily_stats by calculating daily changes
-        const { data: dailyStats, error } = await supabase
-          .from('daily_stats')
-          .select('date, solved_count')
-          .eq('user_id', user_id)
-          .eq('platform', 'codechef')
-          .order('date', { ascending: true });
+        // Prefer real accepted-submission history from CodeChef recent submissions endpoint.
+        let dailySubmissions = await fetchCodeChefAcceptedCalendar(cc_username);
 
-        if (error) {
-          console.error('CodeChef daily_stats fetch error:', error.message);
-        } else if (dailyStats && dailyStats.length > 0) {
-          console.log(`CodeChef: Found ${dailyStats.length} daily_stats records`);
-          
-          const dailySubmissions = {};
-          
-          if (dailyStats.length === 1) {
-            // Only one record - assume user solved these gradually over past months
-            // Distribute evenly to avoid spike (rough estimate)
-            const totalSolved = dailyStats[0].solved_count;
-            const today = new Date(dailyStats[0].date);
-            const monthsBack = Math.min(Math.ceil(totalSolved / 20), 12); // Assume ~20 per month, max 12 months
-            const perMonth = Math.ceil(totalSolved / monthsBack);
-            
-            for (let i = 0; i < monthsBack; i++) {
-              const date = new Date(today);
-              date.setMonth(date.getMonth() - i);
-              date.setDate(1); // First of month
-              const dateStr = date.toISOString().split('T')[0];
-              dailySubmissions[dateStr] = perMonth;
-            }
-            
-            console.log(`CodeChef: Single record, distributed ${totalSolved} problems over ${monthsBack} months`);
-          } else {
-            // Calculate daily changes from multiple records
+        // Fallback to daily_stats deltas only when scrape returns no usable rows.
+        if (!dailySubmissions || Object.keys(dailySubmissions).length === 0) {
+          const { data: dailyStats, error } = await supabase
+            .from('daily_stats')
+            .select('date, solved_count')
+            .eq('user_id', user_id)
+            .eq('platform', 'codechef')
+            .order('date', { ascending: true });
+
+          if (error) {
+            console.error('CodeChef daily_stats fetch error:', error.message);
+          } else if (dailyStats && dailyStats.length > 1) {
+            dailySubmissions = {};
+
+            // Real delta-based changes from snapshots; no synthetic monthly distribution.
             dailyStats.forEach((stat, index) => {
-              if (index === 0) {
-                // For first entry, assume it represents problems solved in past month
-                const count = stat.solved_count;
-                if (count > 0) {
-                  dailySubmissions[stat.date] = Math.min(count, 50); // Cap at 50 to avoid huge spike
-                }
-                return;
-              }
-              
+              if (index === 0) return;
+
               const prevStat = dailyStats[index - 1];
-              const change = stat.solved_count - prevStat.solved_count;
-              
+              const change = toSafeNumber(stat.solved_count) - toSafeNumber(prevStat.solved_count);
+
               if (change > 0) {
                 dailySubmissions[stat.date] = change;
               }
             });
-            
-            console.log(`CodeChef calendar: ${Object.keys(dailySubmissions).length} active days`);
           }
-          
-          result.codechef = dailySubmissions;
         }
+
+        result.codechef = dailySubmissions || {};
+        console.log(`CodeChef calendar: ${Object.keys(result.codechef).length} active days`);
       } catch (error) {
         console.error('CodeChef calendar fetch error:', error.message);
       }

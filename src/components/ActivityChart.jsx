@@ -295,10 +295,12 @@ export default function ActivityChart({ data }) {
 
   const chartData = generateChartData();
   
-  // Calculate statistics
-  const totalSubmissions = chartData.length > 0 
-    ? chartData.reduce((sum, d) => sum + d.LeetCode + d.Codeforces + d.CodeChef, 0)
-    : 0;
+  // DEBUG: Log data source and CodeChef values
+  const codechefTotal = chartData.reduce((sum, d) => sum + d.CodeChef, 0);
+  const isUsingSubmissionCalendar = submissionData && Object.keys(submissionData.codechef || {}).length > 0;
+  const isUsingDailyStatsFallback = !isUsingSubmissionCalendar && dailyStats && dailyStats.length > 0;
+  console.log(`🎯 CHART DATA SOURCE: ${isUsingSubmissionCalendar ? '✅ Real Submission Calendar' : isUsingDailyStatsFallback ? '⚠️ DailyStats Fallback' : '❌ No Data'}`);
+  console.log(`🎯 CodeChef Data: Total=${codechefTotal}, Months with data=${chartData.filter(m => m.CodeChef > 0).length}, Values=${chartData.map(d => d.CodeChef).join(',')}`);
   
   const avgPerMonth = chartData.length > 0
     ? Math.round(chartData.reduce((sum, d) => sum + d.LeetCode + d.Codeforces + d.CodeChef, 0) / chartData.length)

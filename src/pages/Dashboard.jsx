@@ -16,6 +16,7 @@ export default function Dashboard() {
   const { streakData, fetchDailyStats, getTotalStats, getPlatformBreakdown, getPlatformStreak, loading, clearCache } = useStatsStore();
   
   const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState({ done: 0, total: 0 });
   const [syncResults, setSyncResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [problemTypes, setProblemTypes] = useState([]);
@@ -118,6 +119,7 @@ export default function Dashboard() {
     if (!user?.id || !profile) return;
 
     setSyncing(true);
+    setSyncProgress({ done: 0, total: 0 });
     setSyncResults([]);
     setShowResults(true);
 
@@ -144,8 +146,10 @@ export default function Dashboard() {
     ];
 
     // Sync all platforms in parallel
-    const syncPromises = platforms
-      .filter(p => p.handle) // Only sync platforms with configured handles
+    const configuredPlatforms = platforms.filter(p => p.handle);
+    setSyncProgress({ done: 0, total: configuredPlatforms.length });
+
+    const syncPromises = configuredPlatforms
       .map(async (platform) => {
         try {
           const authHeaders = await getAuthHeaders();
@@ -184,12 +188,15 @@ export default function Dashboard() {
             success: false,
             message: error.message || 'Network error',
           };
+        } finally {
+          setSyncProgress((prev) => ({ ...prev, done: prev.done + 1 }));
         }
       });
 
     const syncResults = await Promise.all(syncPromises);
     setSyncResults(syncResults);
     setSyncing(false);
+    setSyncProgress({ done: syncResults.length, total: syncResults.length });
 
     // Refresh all dashboard data after sync (wait longer for database to update)
     setTimeout(() => {
@@ -237,7 +244,9 @@ export default function Dashboard() {
                   className="flex items-center gap-2 px-6 py-3 bg-white hover:bg-white/95 disabled:bg-white/50 text-purple-600 font-bold rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-2xl"
                 >
                   <Zap className={`w-5 h-5 ${syncing ? 'animate-pulse' : ''}`} />
-                  {syncing ? 'Syncing All...' : 'Sync All Platforms'}
+                  {syncing
+                    ? `Syncing (${syncProgress.done}/${syncProgress.total || 0})...`
+                    : 'Sync All Platforms'}
                 </button>
               )}
             </div>

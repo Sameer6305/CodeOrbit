@@ -7,10 +7,20 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
   const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [now, setNow] = useState(new Date());
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
   useEffect(() => {
     fetchContests();
   }, [refreshTrigger]); // Re-fetch when trigger changes
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchContests = async () => {
     try {
@@ -33,10 +43,12 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
       
       const uniqueContests = Object.values(contestsByPlatform);
       setContests(uniqueContests.length > 0 ? uniqueContests : getSampleContests());
+      setLastUpdatedAt(new Date());
       setLoading(false);
     } catch (err) {
       setError(err.message);
       setContests(getSampleContests());
+      setLastUpdatedAt(new Date());
       setLoading(false);
     }
   };
@@ -87,7 +99,6 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
 
   function getTimeRemaining(timeString) {
     const startTime = new Date(timeString);
-    const now = new Date();
     const diffMs = startTime - now;
     
     if (diffMs < 0) {
@@ -198,6 +209,12 @@ export default function ContestWidget({ refreshTrigger = 0 }) {
           </button>
         </div>
       </div>
+
+      {lastUpdatedAt && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          Last updated: {lastUpdatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </p>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">

@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const USERNAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 
 function toSafeNumber(value) {
   const num = Number(value);
@@ -94,15 +95,30 @@ async function fetchCodeChefAcceptedCalendar(handle) {
       totalAccepted++;
     });
     
-    console.log(`   Page ${pid}: ${pageAccepted} accepted rows`);\n  }
+    console.log(`   Page ${pid}: ${pageAccepted} accepted rows`);
+  }
 
   console.log(`✅ CodeChef scrape: ${totalAccepted} submissions across ${Object.keys(allAcceptedByDate).length} dates`);
   return allAcceptedByDate;
 }
 
 export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
     const { lc_username, cf_handle, cc_username, user_id } = req.query;
+
+    if (lc_username && !USERNAME_RE.test(String(lc_username))) {
+      return res.status(400).json({ error: 'Invalid lc_username format' });
+    }
+    if (cf_handle && !USERNAME_RE.test(String(cf_handle))) {
+      return res.status(400).json({ error: 'Invalid cf_handle format' });
+    }
+    if (cc_username && !USERNAME_RE.test(String(cc_username))) {
+      return res.status(400).json({ error: 'Invalid cc_username format' });
+    }
     
     const result = {
       leetcode: {},

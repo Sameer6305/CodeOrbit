@@ -3,10 +3,26 @@ import { createClient } from "@supabase/supabase-js";
 import { parseLeetCodeCalendar, calculateStreakFromCalendar } from "./utils/streakCalculator.js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const USERNAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
     const { username, user_id } = req.query;
+
+    if (!username || !user_id) {
+      return res.status(400).json({ error: "Missing username or user_id" });
+    }
+    if (!USERNAME_RE.test(String(username))) {
+      return res.status(400).json({ error: "Invalid username format" });
+    }
+    if (!UUID_RE.test(String(user_id))) {
+      return res.status(400).json({ error: "Invalid user_id format" });
+    }
 
     const query = `
       query getUserProfile($username: String!) {
@@ -29,7 +45,10 @@ export default async function handler(req, res) {
       { headers: { "Content-Type": "application/json" } }
     );
 
-    const stats = response.data.data;
+    const stats = response.data?.data;
+    if (!stats?.matchedUser?.submitStats?.acSubmissionNum) {
+      return res.status(404).json({ error: "LeetCode user not found" });
+    }
 
     // Get only the 'All' difficulty count to avoid double counting
     const allDifficulty = stats.matchedUser.submitStats.acSubmissionNum.find(

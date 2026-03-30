@@ -6,6 +6,14 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 const API_TOKEN = process.env.CLIST_API_TOKEN;
 
 export default async function handler(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  if (!API_TOKEN) {
+    return res.status(500).json({ error: "CLIST_API_TOKEN is not configured" });
+  }
+
   try {
     const now = new Date();
     const platforms = [

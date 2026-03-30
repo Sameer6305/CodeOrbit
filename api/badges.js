@@ -1,8 +1,20 @@
 import axios from "axios";
 
+const USERNAME_RE = /^[a-zA-Z0-9_.-]{1,50}$/;
+
 export default async function handler(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
     const { codeforces_handle, leetcode_username, codechef_handle } = req.query;
+    if (leetcode_username && !USERNAME_RE.test(String(leetcode_username))) {
+      return res.status(400).json({ error: "Invalid leetcode_username format" });
+    }
+    if (codechef_handle && !USERNAME_RE.test(String(codechef_handle))) {
+      return res.status(400).json({ error: "Invalid codechef_handle format" });
+    }
     
     const badges = {
       leetcode: 0,
@@ -55,7 +67,7 @@ export default async function handler(req, res) {
         const html = response.data;
         const starMatch = html.match(/(\d+)\s*★/);
         if (starMatch) {
-          badges.codechef = parseInt(starMatch[1]);
+          badges.codechef = parseInt(starMatch[1], 10);
         }
       } catch (error) {
         console.error('CodeChef badges error:', error.message);

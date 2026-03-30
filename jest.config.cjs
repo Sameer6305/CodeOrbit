@@ -4,5 +4,6 @@ module.exports = {
     '^.+\\.jsx?$': 'babel-jest'
   },
   moduleFileExtensions: ['js', 'jsx'],
-  testMatch: ['**/__tests__/**/*.test.js', '**/?(*.)+(spec|test).js']
+  testMatch: ['**/__tests__/**/*.test.js', '**/?(*.)+(spec|test).js'],
+  testPathIgnorePatterns: ['/node_modules/', '/api/test.js']
 };

@@ -1,8 +1,23 @@
 import axios from "axios";
 
+const USERNAME_RE = /^[a-zA-Z0-9_.-]{1,50}$/;
+
 export default async function handler(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
     const { codeforces_handle, leetcode_username, codechef_handle } = req.query;
+    if (codeforces_handle && !USERNAME_RE.test(String(codeforces_handle))) {
+      return res.status(400).json({ error: "Invalid codeforces_handle format" });
+    }
+    if (leetcode_username && !USERNAME_RE.test(String(leetcode_username))) {
+      return res.status(400).json({ error: "Invalid leetcode_username format" });
+    }
+    if (codechef_handle && !USERNAME_RE.test(String(codechef_handle))) {
+      return res.status(400).json({ error: "Invalid codechef_handle format" });
+    }
 
     const problemTypes = new Set();
     const typeCount = {};
@@ -58,7 +73,10 @@ export default async function handler(req, res) {
           { headers: { "Content-Type": "application/json" } }
         );
 
-        const tagCounts = lcResponse.data.data.matchedUser.tagProblemCounts;
+        const tagCounts = lcResponse.data?.data?.matchedUser?.tagProblemCounts;
+        if (!tagCounts) {
+          throw new Error('LeetCode user not found');
+        }
         
         // Combine all tag levels
         [...tagCounts.advanced, ...tagCounts.intermediate, ...tagCounts.fundamental].forEach(tag => {

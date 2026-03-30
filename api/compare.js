@@ -1,5 +1,7 @@
 import { parseLeetCodeCalendar, createCodeforcesCalendar, calculateStreakFromCalendar } from "./utils/streakCalculator.js";
 
+const HANDLE_RE = /^[a-zA-Z0-9_.-]{1,50}$/;
+
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -31,6 +33,15 @@ export default async function handler(req, res) {
 
   if (!cf_handle && !lc_username && !cc_handle) {
     return res.status(400).json({ error: 'At least one profile handle is required' });
+  }
+  if (cf_handle && !HANDLE_RE.test(String(cf_handle))) {
+    return res.status(400).json({ error: 'Invalid cf_handle format' });
+  }
+  if (lc_username && !HANDLE_RE.test(String(lc_username))) {
+    return res.status(400).json({ error: 'Invalid lc_username format' });
+  }
+  if (cc_handle && !HANDLE_RE.test(String(cc_handle))) {
+    return res.status(400).json({ error: 'Invalid cc_handle format' });
   }
 
   try {
@@ -205,7 +216,7 @@ export default async function handler(req, res) {
     
     if (!hasAnyData) {
       console.log('⚠️ No data could be fetched for any platform');
-      return res.status(200).json({ 
+      return res.status(404).json({ 
         error: 'No data found for the provided handles',
         details: 'Please verify the usernames are correct and try again',
         leetcode: 0,

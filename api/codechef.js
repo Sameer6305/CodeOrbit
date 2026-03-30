@@ -3,13 +3,25 @@ import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const HANDLE_RE = /^[a-zA-Z0-9_-]{1,50}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
     const { handle, user_id } = req.query;
 
     if (!handle || !user_id) {
       return res.status(400).json({ error: "Missing handle or user_id" });
+    }
+    if (!HANDLE_RE.test(String(handle))) {
+      return res.status(400).json({ error: "Invalid handle format" });
+    }
+    if (!UUID_RE.test(String(user_id))) {
+      return res.status(400).json({ error: "Invalid user_id format" });
     }
 
     const page = await axios.get(`https://www.codechef.com/users/${handle}`, {
@@ -26,7 +38,7 @@ export default async function handler(req, res) {
       const text = $(el).text().trim();
       const match = text.match(/Total Problems Solved:\s*(\d+)/i);
       if (match) {
-        solved = parseInt(match[1]);
+        solved = parseInt(match[1], 10);
         return false; // Break the loop
       }
     });
@@ -44,7 +56,7 @@ export default async function handler(req, res) {
         const streakText = $section.find('.rating-number').text().trim();
         const streakMatch = streakText.match(/(\d+)/);
         if (streakMatch) {
-          currentStreak = parseInt(streakMatch[1]);
+          currentStreak = parseInt(streakMatch[1], 10);
         }
       }
     });
@@ -55,7 +67,7 @@ export default async function handler(req, res) {
       const streakMatch = pageText.match(/current\s*streak[^>]*>\s*(\d+)/i) ||
                          pageText.match(/streak[^>]*>\s*(\d+)\s*days?/i);
       if (streakMatch) {
-        currentStreak = parseInt(streakMatch[1]);
+        currentStreak = parseInt(streakMatch[1], 10);
       }
     }
 

@@ -12,7 +12,7 @@ import {
 
 export default function Settings() {
   const { user } = useAuthStore();
-  const { profile, fetchProfile, updatePlatformHandles, loading } = useProfileStore();
+  const { profile, fetchProfile, updateProfile, loading } = useProfileStore();
   
   const [username, setUsername] = useState("");
   const [cfInput, setCfInput] = useState("");
@@ -140,10 +140,11 @@ export default function Settings() {
   const handleSave = async () => {
     if (!user?.id) return;
 
-    const result = await updatePlatformHandles(user.id, {
-      codeforces: cfHandle,
-      leetcode: leetcodeUsername,
-      codechef: codechefHandle,
+    const result = await updateProfile(user.id, {
+      username: username?.trim() || null,
+      codeforces_handle: cfHandle || null,
+      leetcode_username: leetcodeUsername || null,
+      codechef_handle: codechefHandle || null,
     });
 
     if (result.success) {
@@ -189,6 +190,8 @@ export default function Settings() {
                 </label>
                 <input
                   type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   placeholder="Your username"
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
                 />

@@ -1,35 +1,44 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
+import { ensureMethod, sendError, createLogger, requireAuthenticatedUser, withRetry } from "./utils/http.js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 const HANDLE_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const logger = createLogger("codechef-sync");
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (!ensureMethod(req, res, "GET")) {
+    return;
   }
 
   try {
     const { handle, user_id } = req.query;
 
     if (!handle || !user_id) {
-      return res.status(400).json({ error: "Missing handle or user_id" });
+      return sendError(res, 400, "Missing handle or user_id");
     }
     if (!HANDLE_RE.test(String(handle))) {
-      return res.status(400).json({ error: "Invalid handle format" });
+      return sendError(res, 400, "Invalid handle format");
     }
     if (!UUID_RE.test(String(user_id))) {
-      return res.status(400).json({ error: "Invalid user_id format" });
+      return sendError(res, 400, "Invalid user_id format");
     }
 
-    const page = await axios.get(`https://www.codechef.com/users/${handle}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      timeout: 15000
-    });
+    const authUser = await requireAuthenticatedUser(req, res, supabase, user_id);
+    if (!authUser) {
+      return;
+    }
+
+    const page = await withRetry(() =>
+      axios.get(`https://www.codechef.com/users/${handle}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        timeout: 15000
+      })
+    , { retries: 1 });
     const $ = cheerio.load(page.data);
 
     // Find the h3 that contains "Total Problems Solved:"
@@ -82,10 +91,16 @@ export default async function handler(req, res) {
       onConflict: 'user_id,date,platform'
     });
 
-    console.log(`CodeChef sync: ${handle} = ${solved} problems, streak: ${currentStreak} on ${today}`);
+    logger.info("CodeChef sync completed", {
+      userId: authUser.id,
+      handle,
+      solved,
+      streak: currentStreak,
+      date: today,
+    });
     return res.json({ solved, streak: currentStreak, date: today, platform: 'codechef' });
   } catch (e) {
-    console.error('CodeChef API error:', e.message);
-    res.status(500).json({ error: e.message });
+    logger.error("CodeChef sync failed", { error: e.message });
+    return sendError(res, 500, "Failed to sync CodeChef", e.message);
   }
 }

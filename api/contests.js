@@ -1,17 +1,19 @@
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
+import { createLogger, withRetry, ensureMethod, sendError } from "./utils/http.js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const logger = createLogger("contests");
 
 const API_TOKEN = process.env.CLIST_API_TOKEN;
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (!ensureMethod(req, res, "GET")) {
+    return;
   }
 
   if (!API_TOKEN) {
-    return res.status(500).json({ error: "CLIST_API_TOKEN is not configured" });
+    return sendError(res, 500, "CLIST_API_TOKEN is not configured");
   }
 
   try {
@@ -30,14 +32,14 @@ export default async function handler(req, res) {
         // Get upcoming contests for this platform (limit to 20 to ensure we get at least one upcoming)
         const url = `https://clist.by/api/v4/contest/?resource=${platform.name}&start__gt=${now.toISOString()}&order_by=start&limit=20`;
 
-        console.log(`Fetching contests for ${platform.displayName}:`, url);
+        logger.info("Fetching contests", { platform: platform.displayName });
 
-        const response = await axios.get(url, {
+        const response = await withRetry(() => axios.get(url, {
           headers: { 
             Authorization: `ApiKey ${API_TOKEN}` 
           },
           timeout: 10000 // 10 second timeout
-        });
+        }), { retries: 1 });
 
         if (response.data && response.data.objects && response.data.objects.length > 0) {
           // Get the next upcoming contest for this platform
@@ -65,7 +67,7 @@ export default async function handler(req, res) {
             contestName = originalName;
           }
           
-          console.log(`Contest name: "${originalName}" -> "${contestName}"`);
+          logger.info("Normalized contest name", { platform: platform.displayName, originalName, contestName });
           
           allContests.push({
             name: contestName,
@@ -75,17 +77,17 @@ export default async function handler(req, res) {
             url: nextContest.href || `https://${platform.name}/contests`,
           });
           
-          console.log(`✓ Found contest for ${platform.displayName}:`, nextContest.event);
+          logger.info("Found contest", { platform: platform.displayName, event: nextContest.event });
         } else {
-          console.log(`✗ No contests found for ${platform.displayName}`);
+          logger.warn("No contests found", { platform: platform.displayName });
         }
       } catch (platformError) {
-        console.error(`Error fetching ${platform.displayName}:`, platformError.message);
+        logger.error("Platform contest fetch failed", { platform: platform.displayName, error: platformError.message });
         // Continue to next platform even if one fails
       }
     }
 
-    console.log(`Total contests fetched: ${allContests.length}`);
+    logger.info("Total contests fetched", { count: allContests.length });
 
     // Sort by start time
     allContests.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
@@ -103,18 +105,18 @@ export default async function handler(req, res) {
 
         await supabase.from("contests_cache").delete().neq('id', 0); // Clear old cache
         await supabase.from("contests_cache").insert(rowsForCache);
-        console.log('✓ Cached contests to database');
+        logger.info("Cached contests to database", { count: rowsForCache.length });
       } catch (dbError) {
-        console.error("Database cache error:", dbError.message);
+        logger.error("Database cache error", { error: dbError.message });
         // Don't fail the request if caching fails
       }
     } else {
       // Try to get cached contests if API failed
-      console.log('Attempting to get cached contests...');
+      logger.warn("Falling back to cached contests");
       try {
         const { data: cachedContests, error: cacheError } = await supabase
           .from("contests_cache")
-          .select("*")
+          .select("contest_name, platform, start_time, duration, link")
           .order("start_time", { ascending: true });
         
         if (!cacheError && cachedContests && cachedContests.length > 0) {
@@ -130,18 +132,18 @@ export default async function handler(req, res) {
             }));
 
           if (futureContests.length > 0) {
-            console.log('✓ Using cached contests:', futureContests.length);
+            logger.info("Using cached contests", { count: futureContests.length });
             return res.json({ contests: futureContests });
           }
         }
       } catch (cacheReadError) {
-        console.error("Cache read error:", cacheReadError.message);
+        logger.error("Cache read error", { error: cacheReadError.message });
       }
     }
 
     res.json({ contests: allContests });
   } catch (e) {
-    console.error("Contests API error:", e);
-    res.status(500).json({ error: e.message || 'Failed to fetch contests' });
+    logger.error("Contests API error", { error: e.message });
+    return sendError(res, 500, e.message || 'Failed to fetch contests');
   }
 }

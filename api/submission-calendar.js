@@ -1,9 +1,12 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
+import { ensureMethod, sendError, createLogger, requireAuthenticatedUser, withRetry } from "./utils/http.js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 const USERNAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const logger = createLogger("submission-calendar");
 
 function toSafeNumber(value) {
   const num = Number(value);
@@ -28,7 +31,7 @@ function normalizeCodeChefDate(raw) {
 async function fetchCodeChefAcceptedCalendar(handle) {
   const allAcceptedByDate = {};
 
-  const firstPageResp = await axios.get(`https://www.codechef.com/recent/user?user_handle=${encodeURIComponent(handle)}`,
+  const firstPageResp = await withRetry(() => axios.get(`https://www.codechef.com/recent/user?user_handle=${encodeURIComponent(handle)}`,
     {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -36,7 +39,7 @@ async function fetchCodeChefAcceptedCalendar(handle) {
       },
       timeout: 15000
     }
-  );
+  ), { retries: 1 });
 
   const maxPage = Math.max(1, toSafeNumber(firstPageResp.data?.max_page) || 1);
   const pagesToFetch = Math.min(maxPage, 20);
@@ -46,7 +49,7 @@ async function fetchCodeChefAcceptedCalendar(handle) {
 
   for (let page = 2; page <= pagesToFetch; page++) {
     try {
-      const resp = await axios.get(
+      const resp = await withRetry(() => axios.get(
         `https://www.codechef.com/recent/user?page=${page}&user_handle=${encodeURIComponent(handle)}`,
         {
           headers: {
@@ -55,7 +58,7 @@ async function fetchCodeChefAcceptedCalendar(handle) {
           },
           timeout: 15000
         }
-      );
+      ), { retries: 1 });
       pagePayloads.push(resp.data);
     } catch (error) {
       console.warn(`⚠️  CodeChef page ${page} error:`, error.message);
@@ -103,21 +106,31 @@ async function fetchCodeChefAcceptedCalendar(handle) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (!ensureMethod(req, res, "GET")) {
+    return;
   }
 
   try {
     const { lc_username, cf_handle, cc_username, user_id } = req.query;
 
     if (lc_username && !USERNAME_RE.test(String(lc_username))) {
-      return res.status(400).json({ error: 'Invalid lc_username format' });
+      return sendError(res, 400, 'Invalid lc_username format');
     }
     if (cf_handle && !USERNAME_RE.test(String(cf_handle))) {
-      return res.status(400).json({ error: 'Invalid cf_handle format' });
+      return sendError(res, 400, 'Invalid cf_handle format');
     }
     if (cc_username && !USERNAME_RE.test(String(cc_username))) {
-      return res.status(400).json({ error: 'Invalid cc_username format' });
+      return sendError(res, 400, 'Invalid cc_username format');
+    }
+    if (user_id && !UUID_RE.test(String(user_id))) {
+      return sendError(res, 400, 'Invalid user_id format');
+    }
+
+    if (user_id) {
+      const authUser = await requireAuthenticatedUser(req, res, supabase, user_id);
+      if (!authUser) {
+        return;
+      }
     }
     
     const result = {
@@ -139,12 +152,13 @@ export default async function handler(req, res) {
           }
         `;
 
-        const lcResponse = await axios.post('https://leetcode.com/graphql', {
+        const lcResponse = await withRetry(() => axios.post('https://leetcode.com/graphql', {
           query: lcQuery,
           variables: { username: lc_username }
         }, {
-          headers: { 'Content-Type': 'application/json' }
-        });
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 12000
+        }), { retries: 1 });
 
         if (lcResponse.data?.data?.matchedUser?.userCalendar?.submissionCalendar) {
           // LeetCode returns a JSON string like: '{"1609459200": 1, "1609545600": 3}'
@@ -165,7 +179,7 @@ export default async function handler(req, res) {
     // Fetch Codeforces submission history and create calendar
     if (cf_handle) {
       try {
-        const cfResponse = await axios.get(`https://codeforces.com/api/user.status?handle=${cf_handle}`);
+        const cfResponse = await withRetry(() => axios.get(`https://codeforces.com/api/user.status?handle=${cf_handle}`, { timeout: 12000 }), { retries: 1 });
         
         if (cfResponse.data.status === 'OK') {
           const submissions = cfResponse.data.result;
@@ -250,7 +264,7 @@ export default async function handler(req, res) {
 
     res.json(result);
   } catch (err) {
-    console.error('Submission calendar API error:', err);
-    res.status(500).json({ error: err.message });
+    logger.error('Submission calendar API error', { error: err.message });
+    return sendError(res, 500, 'Failed to fetch submission calendar', err.message);
   }
 }

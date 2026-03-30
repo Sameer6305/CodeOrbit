@@ -31,6 +31,7 @@ import {
 } from "recharts";
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+const HANDLE_RE = /^[a-zA-Z0-9_.-]{1,50}$/;
 
 export default function Benchmark() {
   const { user } = useAuthStore();
@@ -75,6 +76,22 @@ export default function Benchmark() {
       const cfHandle = compareHandles.codeforces ? parseCodeforcesUrl(compareHandles.codeforces) : '';
       const lcHandle = compareHandles.leetcode ? parseLeetCodeUrl(compareHandles.leetcode) : '';
       const ccHandle = compareHandles.codechef ? parseCodeChefUrl(compareHandles.codechef) : '';
+
+      if (cfHandle && !HANDLE_RE.test(cfHandle)) {
+        setError("Invalid Codeforces handle format");
+        setComparisonData(null);
+        return;
+      }
+      if (lcHandle && !HANDLE_RE.test(lcHandle)) {
+        setError("Invalid LeetCode username format");
+        setComparisonData(null);
+        return;
+      }
+      if (ccHandle && !HANDLE_RE.test(ccHandle)) {
+        setError("Invalid CodeChef handle format");
+        setComparisonData(null);
+        return;
+      }
       
       const params = new URLSearchParams();
       if (cfHandle) params.append('cf_handle', cfHandle);

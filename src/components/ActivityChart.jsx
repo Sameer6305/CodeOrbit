@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart,
@@ -16,6 +16,7 @@ import { useStatsStore } from "../store/stats";
 import { useProfileStore } from "../store/profile";
 import { useAuthStore } from "../store/auth";
 import { TrendingUp, Calendar, BarChart3, Activity } from "lucide-react";
+import { getAuthHeaders, fetchWithTimeout } from "../utils/apiClient";
 
 export default function ActivityChart({ data }) {
   const { dailyStats, loading } = useStatsStore();
@@ -42,13 +43,15 @@ export default function ActivityChart({ data }) {
         if (params.toString()) {
           // Avoid stale cached responses after sync/deploy updates.
           params.append('t', Date.now().toString());
-          const response = await fetch(`/api/submission-calendar?${params.toString()}`, {
+          const authHeaders = await getAuthHeaders();
+          const response = await fetchWithTimeout(`/api/submission-calendar?${params.toString()}`, {
             cache: 'no-store',
             headers: {
+              ...authHeaders,
               'Cache-Control': 'no-cache, no-store, must-revalidate',
               Pragma: 'no-cache'
             }
-          });
+          }, 15000);
           if (response.ok) {
             const data = await response.json();
             console.log('📊 Submission calendar data:', data);
@@ -293,7 +296,7 @@ export default function ActivityChart({ data }) {
     return months;
   }
 
-  const chartData = generateChartData();
+  const chartData = useMemo(() => generateChartData(), [submissionData, dailyStats, timeRange]);
   
   // DEBUG: Log data source and CodeChef values
   const codechefTotal = chartData.reduce((sum, d) => sum + d.CodeChef, 0);

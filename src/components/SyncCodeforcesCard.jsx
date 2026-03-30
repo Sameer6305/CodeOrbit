@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CheckCircle, Loader, RefreshCw, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getAuthHeaders, fetchWithTimeout } from "../utils/apiClient";
 
 export default function SyncCodeforcesCard({ handle, userId, onSyncComplete }) {
   const [loading, setLoading] = useState(false);
@@ -19,8 +20,11 @@ export default function SyncCodeforcesCard({ handle, userId, onSyncComplete }) {
     setSuccess(false);
 
     try {
-      const response = await fetch(
-        `/api/codeforces?handle=${handle}&user_id=${userId}`
+      const authHeaders = await getAuthHeaders();
+      const response = await fetchWithTimeout(
+        `/api/codeforces?handle=${handle}&user_id=${userId}`,
+        { headers: { ...authHeaders } },
+        15000
       );
       const data = await response.json();
 

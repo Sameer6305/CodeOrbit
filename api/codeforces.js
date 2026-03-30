@@ -1,35 +1,42 @@
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { createCodeforcesCalendar, calculateStreakFromCalendar } from "./utils/streakCalculator.js";
+import { ensureMethod, sendError, createLogger, requireAuthenticatedUser, withRetry } from "./utils/http.js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 const HANDLE_RE = /^[a-zA-Z0-9_.-]{1,50}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const logger = createLogger("codeforces-sync");
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (!ensureMethod(req, res, "GET")) {
+    return;
   }
 
   try {
     const { handle, user_id } = req.query;
 
     if (!handle || !user_id)
-      return res.status(400).json({ error: "Missing handle or user_id" });
+      return sendError(res, 400, "Missing handle or user_id");
     if (!HANDLE_RE.test(String(handle))) {
-      return res.status(400).json({ error: "Invalid handle format" });
+      return sendError(res, 400, "Invalid handle format");
     }
     if (!UUID_RE.test(String(user_id))) {
-      return res.status(400).json({ error: "Invalid user_id format" });
+      return sendError(res, 400, "Invalid user_id format");
+    }
+
+    const authUser = await requireAuthenticatedUser(req, res, supabase, user_id);
+    if (!authUser) {
+      return;
     }
 
     // 1. Fetch Codeforces submissions
-    const subRes = await axios.get(
-      `https://codeforces.com/api/user.status?handle=${handle}`
-    );
+    const subRes = await withRetry(() =>
+      axios.get(`https://codeforces.com/api/user.status?handle=${handle}`, { timeout: 12000 })
+    , { retries: 1 });
 
     if (subRes.data?.status !== "OK" || !Array.isArray(subRes.data?.result)) {
-      return res.status(404).json({ error: "Codeforces handle not found" });
+      return sendError(res, 404, "Codeforces handle not found");
     }
 
     const subs = subRes.data.result;
@@ -62,9 +69,16 @@ export default async function handler(req, res) {
       onConflict: 'user_id,date,platform'
     });
 
-    console.log(`Codeforces sync: ${handle} = ${totalSolved} problems, streak: ${currentStreak} on ${today}`);
+    logger.info("Codeforces sync completed", {
+      userId: authUser.id,
+      handle,
+      solved: totalSolved,
+      streak: currentStreak,
+      date: today,
+    });
     return res.json({ success: true, solved: totalSolved, streak: currentStreak, date: today, platform: 'codeforces' });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    logger.error("Codeforces sync failed", { error: err.message });
+    return sendError(res, 500, "Failed to sync Codeforces", err.message);
   }
 }

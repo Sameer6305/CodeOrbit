@@ -8,6 +8,7 @@ import HeatmapChart from "../components/HeatmapChart";
 import ActivityChart from "../components/ActivityChart";
 import PlatformRadarChart from "../components/PlatformRadarChart";
 import ContestWidget from "../components/ContestWidget";
+import { getAuthHeaders, fetchWithTimeout } from "../utils/apiClient";
 
 export default function Dashboard() {
   const { user } = useAuthStore();
@@ -147,14 +148,17 @@ export default function Dashboard() {
       .filter(p => p.handle) // Only sync platforms with configured handles
       .map(async (platform) => {
         try {
-          const response = await fetch(
+          const authHeaders = await getAuthHeaders();
+          const response = await fetchWithTimeout(
             `${platform.endpoint}?${platform.param}=${platform.handle}&user_id=${user.id}&t=${Date.now()}`,
             {
               headers: {
+                ...authHeaders,
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
                 'Pragma': 'no-cache'
               }
-            }
+            },
+            15000
           );
           
           if (!response.ok) {

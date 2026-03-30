@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
 import { Tooltip } from "react-tooltip";
 import { useStatsStore } from "../store/stats";
 import { useProfileStore } from "../store/profile";
 import { useAuthStore } from "../store/auth";
+import { getAuthHeaders, fetchWithTimeout } from "../utils/apiClient";
 
 export default function HeatmapChart({ data }) {
   const { dailyStats, loading } = useStatsStore();
@@ -33,13 +34,15 @@ export default function HeatmapChart({ data }) {
         if (params.toString()) {
           // Avoid stale cached responses after sync/deploy updates.
           params.append('t', Date.now().toString());
-          const response = await fetch(`/api/submission-calendar?${params.toString()}`, {
+          const authHeaders = await getAuthHeaders();
+          const response = await fetchWithTimeout(`/api/submission-calendar?${params.toString()}`, {
             cache: 'no-store',
             headers: {
+              ...authHeaders,
               'Cache-Control': 'no-cache, no-store, must-revalidate',
               Pragma: 'no-cache'
             }
-          });
+          }, 15000);
           if (response.ok) {
             const data = await response.json();
             console.log('📅 Heatmap submission data:', data);
@@ -104,7 +107,8 @@ export default function HeatmapChart({ data }) {
     return values;
   }
 
-  const heatmapData = data || generateHeatmapData();
+  const generatedHeatmapData = useMemo(() => generateHeatmapData(), [submissionData]);
+  const heatmapData = data || generatedHeatmapData;
 
   function getColor(count) {
     if (count === 0) return "color-empty";

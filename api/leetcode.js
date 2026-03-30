@@ -1,27 +1,34 @@
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { parseLeetCodeCalendar, calculateStreakFromCalendar } from "./utils/streakCalculator.js";
+import { ensureMethod, sendError, createLogger, requireAuthenticatedUser, withRetry } from "./utils/http.js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 const USERNAME_RE = /^[a-zA-Z0-9_-]{1,50}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const logger = createLogger("leetcode-sync");
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (!ensureMethod(req, res, "GET")) {
+    return;
   }
 
   try {
     const { username, user_id } = req.query;
 
     if (!username || !user_id) {
-      return res.status(400).json({ error: "Missing username or user_id" });
+      return sendError(res, 400, "Missing username or user_id");
     }
     if (!USERNAME_RE.test(String(username))) {
-      return res.status(400).json({ error: "Invalid username format" });
+      return sendError(res, 400, "Invalid username format");
     }
     if (!UUID_RE.test(String(user_id))) {
-      return res.status(400).json({ error: "Invalid user_id format" });
+      return sendError(res, 400, "Invalid user_id format");
+    }
+
+    const authUser = await requireAuthenticatedUser(req, res, supabase, user_id);
+    if (!authUser) {
+      return;
     }
 
     const query = `
@@ -39,15 +46,17 @@ export default async function handler(req, res) {
       }
     `;
 
-    const response = await axios.post(
-      "https://leetcode.com/graphql",
-      { query, variables: { username } },
-      { headers: { "Content-Type": "application/json" } }
-    );
+    const response = await withRetry(() =>
+      axios.post(
+        "https://leetcode.com/graphql",
+        { query, variables: { username } },
+        { headers: { "Content-Type": "application/json" }, timeout: 12000 }
+      )
+    , { retries: 1 });
 
     const stats = response.data?.data;
     if (!stats?.matchedUser?.submitStats?.acSubmissionNum) {
-      return res.status(404).json({ error: "LeetCode user not found" });
+      return sendError(res, 404, "LeetCode user not found");
     }
 
     // Get only the 'All' difficulty count to avoid double counting
@@ -74,9 +83,16 @@ export default async function handler(req, res) {
       onConflict: 'user_id,date,platform'
     });
 
-    console.log(`LeetCode sync: ${username} = ${solved} problems, streak: ${streak} on ${today}`);
+    logger.info("LeetCode sync completed", {
+      userId: authUser.id,
+      username,
+      solved,
+      streak,
+      date: today,
+    });
     return res.json({ solved, streak, date: today, platform: 'leetcode' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error("LeetCode sync failed", { error: err.message });
+    return sendError(res, 500, "Failed to sync LeetCode", err.message);
   }
 }

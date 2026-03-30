@@ -1,19 +1,19 @@
 import { parseLeetCodeCalendar, createCodeforcesCalendar, calculateStreakFromCalendar } from "./utils/streakCalculator.js";
+import { ensureMethod, sendError, createLogger, applyCors } from "./utils/http.js";
 
 const HANDLE_RE = /^[a-zA-Z0-9_.-]{1,50}$/;
+const logger = createLogger("compare");
 
 export default async function handler(req, res) {
   // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
   
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (!ensureMethod(req, res, "GET")) {
+    return;
   }
 
   const { cf_handle, lc_username, cc_handle, test } = req.query;
@@ -28,20 +28,19 @@ export default async function handler(req, res) {
     });
   }
 
-  console.log('🎯 Compare API called with:', { cf_handle, lc_username, cc_handle });
-  console.log('🎯 API Version: 2.0 - Using same methods as user sync APIs');
+  logger.info("Compare API called", { cf_handle, lc_username, cc_handle });
 
   if (!cf_handle && !lc_username && !cc_handle) {
-    return res.status(400).json({ error: 'At least one profile handle is required' });
+    return sendError(res, 400, 'At least one profile handle is required');
   }
   if (cf_handle && !HANDLE_RE.test(String(cf_handle))) {
-    return res.status(400).json({ error: 'Invalid cf_handle format' });
+    return sendError(res, 400, 'Invalid cf_handle format');
   }
   if (lc_username && !HANDLE_RE.test(String(lc_username))) {
-    return res.status(400).json({ error: 'Invalid lc_username format' });
+    return sendError(res, 400, 'Invalid lc_username format');
   }
   if (cc_handle && !HANDLE_RE.test(String(cc_handle))) {
-    return res.status(400).json({ error: 'Invalid cc_handle format' });
+    return sendError(res, 400, 'Invalid cc_handle format');
   }
 
   try {
@@ -215,25 +214,15 @@ export default async function handler(req, res) {
       (cc_handle && fetchSuccess.codechef);
     
     if (!hasAnyData) {
-      console.log('⚠️ No data could be fetched for any platform');
-      return res.status(404).json({ 
-        error: 'No data found for the provided handles',
-        details: 'Please verify the usernames are correct and try again',
-        leetcode: 0,
-        codeforces: 0,
-        codechef: 0,
-        streaks: { leetcode: 0, codeforces: 0, codechef: 0 }
-      });
+      logger.warn("No data found for provided handles", { cf_handle, lc_username, cc_handle });
+      return sendError(res, 404, 'No data found for the provided handles', 'Please verify the usernames are correct and try again');
     }
     
     console.log('✅ Returning successful result:', result);
     return res.status(200).json(result);
 
   } catch (error) {
-    console.error('Comparison API error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to fetch comparison data',
-      details: error.message 
-    });
+    logger.error("Comparison API error", { error: error.message });
+    return sendError(res, 500, 'Failed to fetch comparison data', error.message);
   }
 }
